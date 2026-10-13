@@ -1,73 +1,136 @@
+<div align="center">
+
 # 互联网流量实时监控与数据运营平台
 
-面向互联网业务流量监控场景的全栈数据应用。平台接收服务级分钟指标，完成聚合查询、阈值告警、状态流转与 WebSocket 实时推送，并通过运营看板呈现吞吐量、错误率、响应延迟和待处理告警。
+Spring Boot 与 Vue 构建的全栈实时数据应用，统一完成流量接入、服务健康分析和告警协同处置。
 
-当前版本：`v0.3.2`。完整操作见 [用户使用指南](docs/user-guide.md)。
+[![CI](https://github.com/ZliY221/internet-realtime-data-operations-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/ZliY221/internet-realtime-data-operations-platform/actions/workflows/ci.yml)
+![Version](https://img.shields.io/badge/version-v0.4.2-32d6c4)
+![Java](https://img.shields.io/badge/Java-21-ef4b4b)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.1-6db33f)
+![Vue](https://img.shields.io/badge/Vue-3-42b883)
 
-## 核心能力
+[快速启动](#快速启动) · [系统架构](#系统架构) · [核心能力](#核心能力) · [项目文档](#项目文档) · [版本记录](CHANGELOG.md)
 
-- 接收服务访问量、错误量与 P95 响应时间，持久化至 PostgreSQL。
-- 根据错误率和响应延迟生成分级告警，支持确认与解决状态流转。
-- 通过 WebSocket 推送新指标和告警变化，页面无需刷新即可更新。
-- 提供 Vue 3 + ECharts 运营看板，展示关键指标、趋势、服务明细和告警队列。
-- 提供服务维度健康排行，按时间窗口聚合请求量、错误率与平均 P95 延迟。
-- 使用 Flyway 管理数据库结构，提供 H2 本地模式和 Docker Compose 部署方式。
+</div>
 
-## 技术栈
+## 项目简介
 
-- 后端：Java 21、Spring Boot 4.1、Spring Web、Spring Data JPA、WebSocket
-- 前端：Vue 3、TypeScript、Vite、ECharts
-- 数据库：PostgreSQL、Flyway；本地模式使用 H2
-- 工程化：Maven、npm、Docker Compose、GitHub Actions
+平台接收互联网服务的分钟流量指标，聚合请求量、错误率和 P95 响应时间，按规则生成分级告警，并通过 WebSocket 将指标和告警变化实时推送到运营看板。告警支持筛选、负责人分派、确认和解决，形成面向服务运营的完整处置流程。
+
+| 关注点 | 项目实现 |
+| --- | --- |
+| 指标接入 | 服务请求量、错误量、错误率与 P95 延迟 |
+| 实时交互 | WebSocket 推送指标、告警和分派变化 |
+| 告警协同 | 分级规则、级别筛选、负责人分派、状态流转 |
+| 数据展示 | 运营 KPI、趋势图、服务健康排行和处置队列 |
+| 工程运行 | H2 本地模式、PostgreSQL、Flyway、Docker Compose |
 
 ## 快速启动
 
-### 本地开发模式
+需要 Java 21+、Maven 3.6.3+ 和 Node.js 20+。
 
-需要 Java 21+、Maven 3.6.3+、Node.js 20+。
-
-终端一：
+终端一启动后端：
 
 ```powershell
 ./scripts/start-backend.ps1
 ```
 
-终端二：
+终端二启动前端：
 
 ```powershell
 ./scripts/start-frontend.ps1
 ```
 
-访问 `http://localhost:5173`。本地模式使用文件型 H2 数据库，并自动生成演示指标。
+访问 `http://localhost:5173`。本地模式使用文件型 H2 数据库并生成演示指标。
 
-### Docker Compose
+使用容器启动完整环境：
 
 ```bash
 docker compose up --build
 ```
 
-访问 `http://localhost:8088`，后端健康检查地址为 `http://localhost:8080/actuator/health`。
+前端地址为 `http://localhost:8088`，后端健康检查为 `http://localhost:8080/actuator/health`。
+
+## 系统架构
+
+```mermaid
+flowchart LR
+    A[服务分钟指标] --> B[Spring Boot API]
+    B --> C[指标存储]
+    B --> D[告警规则]
+    D --> E[告警生命周期]
+    C --> F[健康聚合]
+    E --> G[WebSocket]
+    F --> G
+    G --> H[Vue 运营看板]
+    H --> I[筛选 分派 确认 解决]
+    I --> B
+```
+
+## 核心能力
+
+### 后端服务
+
+- 使用 Spring Web 接收并校验服务分钟指标。
+- 使用 Spring Data JPA 管理指标和告警持久化。
+- 按错误率和响应延迟生成 WARNING、CRITICAL 告警。
+- 提供服务健康聚合、告警摘要和生命周期操作接口。
+
+### 前端看板
+
+- 展示近 60 分钟请求量、错误率、平均 P95 延迟和活动告警。
+- 使用 ECharts 展示流量与延迟趋势。
+- 按严重级别筛选告警并在表格内分派处置团队。
+- 接收 WebSocket 事件后自动刷新页面数据。
+
+### 数据与部署
+
+- 使用 Flyway 管理数据库增量迁移和索引。
+- 本地模式使用 H2，容器环境使用 PostgreSQL。
+- Docker Compose 编排数据库、后端和前端服务。
+- GitHub Actions 构建后端、运行工程验证并生成前端生产包。
 
 ## 工程结构
 
 ```text
-backend/             Spring Boot API、告警规则、WebSocket 与数据库迁移
-frontend/            Vue 运营看板
-docs/                架构、接口与运行说明
-scripts/             本地启动与工程校验入口
-compose.yaml         PostgreSQL、后端与前端编排
-VERSION_LOG.md       版本改动记录
+backend/       Spring Boot API、规则、WebSocket 和数据库迁移
+frontend/      Vue 3、TypeScript 与 ECharts 运营看板
+docs/          架构、接口和运行文档
+scripts/       本地启动与统一验证入口
+compose.yaml   PostgreSQL、后端与前端编排
 ```
 
-## 文档
+## 常用入口
 
-- [系统架构](docs/architecture.md)
+| 目标 | 命令或入口 |
+| --- | --- |
+| 启动后端 | `./scripts/start-backend.ps1` |
+| 启动前端 | `./scripts/start-frontend.ps1` |
+| 工程验证 | `./scripts/verify.ps1` |
+| 容器部署 | `docker compose up --build` |
+| 健康检查 | `GET /actuator/health` |
+| 告警查询 | `GET /api/v1/alerts` |
+
+## 项目文档
+
 - [用户使用指南](docs/user-guide.md)
+- [系统架构](docs/architecture.md)
 - [接口说明](docs/api.md)
 - [本地开发](docs/local-development.md)
-- [版本日志](VERSION_LOG.md)
+- [版本记录](CHANGELOG.md)
+- [版本摘要](VERSION_LOG.md)
+
+## 运行边界
+
+- 内置指标模拟器仅用于本地展示，生产接入时应关闭。
+- 告警规则用于演示可配置处置链路，不替代生产监控平台的完整策略体系。
+- 指标与告警正文不应携带个人信息、访问凭据或原始请求内容。
+
+## 版本与维护
+
+当前版本为 `v0.4.2`。每次发布同步维护[用户使用指南](docs/user-guide.md)、[版本记录](CHANGELOG.md)和[版本摘要](VERSION_LOG.md)。
 
 ## License
 
 MIT
-
