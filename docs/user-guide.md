@@ -1,0 +1,82 @@
+# 用户使用指南
+
+适用版本：`v0.1.2`
+
+本指南随项目版本同步更新，说明当前版本的本地运行、指标接入、实时看板和告警处置方法。
+
+## 1. 环境要求
+
+- JDK 21
+- Maven 3.9 或更高版本
+- Node.js 22 或更高版本
+- 完整容器部署需要 Docker Compose
+
+## 2. 本地启动
+
+后端使用 H2 文件数据库启动：
+
+```powershell
+cd backend
+mvn spring-boot:run -Dspring-boot.run.profiles=local
+```
+
+另开终端启动前端：
+
+```powershell
+cd frontend
+npm ci
+npm run dev
+```
+
+访问前端输出的本地地址。后端默认监听 `http://127.0.0.1:8080`，健康检查为 `/actuator/health`。
+
+## 3. 接入流量指标
+
+向 `POST /api/v1/metrics` 提交服务分钟指标：
+
+```json
+{
+  "serviceName": "checkout",
+  "requestCount": 2000,
+  "errorCount": 40,
+  "p95LatencyMs": 480,
+  "collectedAt": "2026-10-13T05:00:00Z"
+}
+```
+
+后端保存指标、执行错误率与延迟规则，并通过 `/ws/metrics` 推送指标和告警变化。看板收到事件后自动刷新趋势、服务状态和告警队列。
+
+## 4. 运营看板
+
+- 运营总览：近 60 分钟请求量、错误率、P95 延迟和活动告警。
+- 流量监控：请求量与响应延迟趋势。
+- 服务状态：按异常优先级展示各服务聚合结果。
+- 告警中心：展示待确认、处理中、严重告警摘要与处置队列。
+
+## 5. 告警处置
+
+- `GET /api/v1/alerts/summary`：查看生命周期和严重级别汇总。
+- `GET /api/v1/alerts?status=OPEN`：查询指定状态告警。
+- `POST /api/v1/alerts/{id}/acknowledge`：确认告警并进入处理中。
+- `POST /api/v1/alerts/{id}/resolve`：解决告警。
+
+状态变化会实时广播到已连接的看板。
+
+## 6. 容器部署
+
+```powershell
+docker compose up --build
+```
+
+该方式启动 PostgreSQL、Spring Boot 后端和前端服务。数据库表由 Flyway 管理，连接信息通过 Compose 环境变量注入。
+
+## 7. 常见问题
+
+- 后端无法启动：检查 JDK 是否为 21，以及 8080 端口是否占用。
+- 页面无实时更新：确认浏览器能连接 `/ws/metrics`，反向代理需要允许 WebSocket Upgrade。
+- 本地数据需要重置：停止进程后移走 `backend/data/`；该目录仅保存本地 H2 数据。
+- PostgreSQL 连接失败：检查容器健康状态与数据库环境变量。
+
+## 8. 数据边界
+
+内置指标模拟器仅用于本地展示。生产接入时应关闭模拟器，并通过受控服务写入聚合指标；不要在指标或告警正文中提交个人信息和访问凭据。

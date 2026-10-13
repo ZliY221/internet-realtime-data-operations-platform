@@ -23,6 +23,17 @@ public class AlertService {
         return repository.findTop100ByStatusOrderByCreatedAtDesc(status);
     }
 
+    @Transactional(readOnly = true)
+    public AlertSummary summary() {
+        return new AlertSummary(
+                repository.countByStatus(AlertStatus.OPEN),
+                repository.countByStatus(AlertStatus.ACKNOWLEDGED),
+                repository.countByStatus(AlertStatus.RESOLVED),
+                repository.countBySeverityAndStatusNot(AlertSeverity.CRITICAL, AlertStatus.RESOLVED),
+                repository.countBySeverityAndStatusNot(AlertSeverity.WARNING, AlertStatus.RESOLVED)
+        );
+    }
+
     @Transactional
     public Alert acknowledge(long id) {
         Alert alert = find(id);

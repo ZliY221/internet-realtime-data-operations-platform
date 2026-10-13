@@ -2,7 +2,7 @@
 
 面向互联网业务流量监控场景的全栈数据应用。平台接收服务级分钟指标，完成聚合查询、阈值告警、状态流转与 WebSocket 实时推送，并通过运营看板呈现吞吐量、错误率、响应延迟和待处理告警。
 
-当前版本：`v0.1.1`
+当前版本：`v0.1.2`。完整操作见 [用户使用指南](docs/user-guide.md)。
 
 ## 核心能力
 
@@ -62,6 +62,7 @@ VERSION_LOG.md       版本改动记录
 ## 文档
 
 - [系统架构](docs/architecture.md)
+- [用户使用指南](docs/user-guide.md)
 - [接口说明](docs/api.md)
 - [本地开发](docs/local-development.md)
 - [版本日志](VERSION_LOG.md)

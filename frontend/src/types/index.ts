@@ -20,6 +20,14 @@ export interface Alert {
   updatedAt: string
 }
 
+export interface AlertSummary {
+  open: number
+  acknowledged: number
+  resolved: number
+  activeCritical: number
+  activeWarning: number
+}
+
 export interface Summary {
   windowStart: string
   windowEnd: string

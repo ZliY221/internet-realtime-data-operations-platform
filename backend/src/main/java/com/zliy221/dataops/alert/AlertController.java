@@ -15,6 +15,9 @@ public class AlertController {
         return service.list(status);
     }
 
+    @GetMapping("/summary")
+    public AlertSummary summary() { return service.summary(); }
+
     @PostMapping("/{id}/acknowledge")
     public Alert acknowledge(@PathVariable long id) { return service.acknowledge(id); }
 
