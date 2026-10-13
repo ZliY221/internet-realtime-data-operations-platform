@@ -30,6 +30,9 @@ public class Alert {
     @Column(nullable = false, length = 240)
     private String message;
 
+    @Column(length = 80)
+    private String owner;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -60,6 +63,18 @@ public class Alert {
         updatedAt = Instant.now();
     }
 
+    public void assign(String owner) {
+        String normalized = owner == null ? "" : owner.trim();
+        if (normalized.isEmpty() || normalized.length() > 80) {
+            throw new IllegalArgumentException("负责人名称长度应为 1 到 80 个字符");
+        }
+        if (status == AlertStatus.RESOLVED) {
+            throw new IllegalStateException("已解决告警不能重新分派");
+        }
+        this.owner = normalized;
+        updatedAt = Instant.now();
+    }
+
     public Long getId() { return id; }
     public Long getMetricId() { return metricId; }
     public String getServiceName() { return serviceName; }
@@ -67,6 +82,7 @@ public class Alert {
     public AlertStatus getStatus() { return status; }
     public String getRuleCode() { return ruleCode; }
     public String getMessage() { return message; }
+    public String getOwner() { return owner; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 }

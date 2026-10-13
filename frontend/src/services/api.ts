@@ -18,5 +18,8 @@ export const api = {
   alertSummary: () => request<AlertSummary>('/api/v1/alerts/summary'),
   acknowledge: (id: number) => request<Alert>(`/api/v1/alerts/${id}/acknowledge`, { method: 'POST' }),
   resolve: (id: number) => request<Alert>(`/api/v1/alerts/${id}/resolve`, { method: 'POST' }),
+  assign: (id: number, owner: string) => request<Alert>(`/api/v1/alerts/${id}/owner`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ owner }),
+  }),
 }
 

@@ -26,5 +26,10 @@ public class AlertController {
 
     @PostMapping("/{id}/resolve")
     public Alert resolve(@PathVariable long id) { return service.resolve(id); }
+
+    @PatchMapping("/{id}/owner")
+    public Alert assign(@PathVariable long id, @RequestBody AlertOwnerRequest request) {
+        return service.assign(id, request.owner());
+    }
 }
 

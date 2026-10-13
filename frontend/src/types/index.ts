@@ -16,6 +16,7 @@ export interface Alert {
   status: 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED'
   ruleCode: string
   message: string
+  owner: string | null
   createdAt: string
   updatedAt: string
 }

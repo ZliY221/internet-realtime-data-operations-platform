@@ -37,5 +37,14 @@ class AlertPolicyTest {
 
         assertThat(policy.evaluate(metric)).isEmpty();
     }
+
+    @Test
+    void assignsAnOwnerToAnActiveAlert() {
+        Alert alert = new Alert(1L, "gateway", AlertSeverity.WARNING, "LATENCY", "延迟升高", Instant.now());
+
+        alert.assign(" platform-oncall ");
+
+        assertThat(alert.getOwner()).isEqualTo("platform-oncall");
+    }
 }
 

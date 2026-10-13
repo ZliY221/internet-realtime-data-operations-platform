@@ -71,6 +71,17 @@ async function updateAlert(alert: Alert, action: 'acknowledge' | 'resolve') {
   }
 }
 
+async function assignAlert(alert: Alert, event: Event) {
+  const owner = (event.target as HTMLSelectElement).value
+  if (!owner || owner === alert.owner) return
+  try {
+    await api.assign(alert.id, owner)
+    await loadData()
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '告警分派失败'
+  }
+}
+
 function percent(value: number) { return `${(value * 100).toFixed(2)}%` }
 function time(value: string) { return new Date(value).toLocaleString('zh-CN', { hour12: false }) }
 
@@ -132,13 +143,14 @@ onBeforeUnmount(() => { socket?.close(); if (reconnectTimer) window.clearTimeout
         <div v-if="alerts.length === 0" class="empty">当前没有待处理告警</div>
         <div v-else class="alert-table-wrap">
           <table>
-            <thead><tr><th>级别</th><th>服务</th><th>告警内容</th><th>发生时间</th><th>状态</th><th>操作</th></tr></thead>
+            <thead><tr><th>级别</th><th>服务</th><th>告警内容</th><th>发生时间</th><th>负责人</th><th>状态</th><th>操作</th></tr></thead>
             <tbody>
               <tr v-for="alert in alerts" :key="alert.id">
                 <td><span :class="['severity', alert.severity.toLowerCase()]">{{ alert.severity === 'CRITICAL' ? '严重' : '警告' }}</span></td>
                 <td><strong>{{ alert.serviceName }}</strong></td>
                 <td>{{ alert.message }}</td>
                 <td>{{ time(alert.createdAt) }}</td>
+                <td><select class="owner-select" :value="alert.owner || ''" aria-label="分派告警负责人" @change="assignAlert(alert, $event)"><option value="" disabled>待分派</option><option value="platform-oncall">平台值班</option><option value="data-oncall">数据值班</option><option value="service-owner">服务负责人</option></select></td>
                 <td>{{ alert.status === 'OPEN' ? '待确认' : '处理中' }}</td>
                 <td class="actions"><button v-if="alert.status === 'OPEN'" @click="updateAlert(alert, 'acknowledge')">确认</button><button class="primary" @click="updateAlert(alert, 'resolve')">解决</button></td>
               </tr>

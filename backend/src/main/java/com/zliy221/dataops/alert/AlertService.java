@@ -54,6 +54,15 @@ public class AlertService {
         return updated;
     }
 
+    @Transactional
+    public Alert assign(long id, String owner) {
+        Alert alert = find(id);
+        alert.assign(owner);
+        Alert updated = repository.save(alert);
+        webSocketHandler.broadcast("alert.assigned", updated);
+        return updated;
+    }
+
     private Alert find(long id) {
         return repository.findById(id).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "告警不存在"));
