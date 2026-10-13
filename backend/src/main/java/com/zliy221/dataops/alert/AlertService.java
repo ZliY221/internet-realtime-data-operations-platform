@@ -19,8 +19,10 @@ public class AlertService {
     }
 
     @Transactional(readOnly = true)
-    public List<Alert> list(AlertStatus status) {
-        return repository.findTop100ByStatusOrderByCreatedAtDesc(status);
+    public List<Alert> list(AlertStatus status, AlertSeverity severity) {
+        return severity == null
+                ? repository.findTop100ByStatusOrderByCreatedAtDesc(status)
+                : repository.findTop100ByStatusAndSeverityOrderByCreatedAtDesc(status, severity);
     }
 
     @Transactional(readOnly = true)

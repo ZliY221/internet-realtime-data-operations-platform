@@ -1,6 +1,6 @@
 # 用户使用指南
 
-适用版本：`v0.1.2`
+适用版本：`v0.2.2`
 
 本指南随项目版本同步更新，说明当前版本的本地运行、指标接入、实时看板和告警处置方法。
 
@@ -52,11 +52,12 @@ npm run dev
 - 流量监控：请求量与响应延迟趋势。
 - 服务状态：按异常优先级展示各服务聚合结果。
 - 告警中心：展示待确认、处理中、严重告警摘要与处置队列。
+- 告警级别筛选：可切换全部、严重和警告，只查看当前需要处理的对应队列。
 
 ## 5. 告警处置
 
 - `GET /api/v1/alerts/summary`：查看生命周期和严重级别汇总。
-- `GET /api/v1/alerts?status=OPEN`：查询指定状态告警。
+- `GET /api/v1/alerts?status=OPEN&severity=CRITICAL`：按状态和可选级别查询告警。
 - `POST /api/v1/alerts/{id}/acknowledge`：确认告警并进入处理中。
 - `POST /api/v1/alerts/{id}/resolve`：解决告警。
 

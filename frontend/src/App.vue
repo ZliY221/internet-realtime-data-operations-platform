@@ -12,6 +12,7 @@ const summary = ref<Summary>(emptySummary)
 const metrics = ref<Metric[]>([])
 const alerts = ref<Alert[]>([])
 const alertSummary = ref<AlertSummary>({ open: 0, acknowledged: 0, resolved: 0, activeCritical: 0, activeWarning: 0 })
+const severityFilter = ref<'' | Alert['severity']>('')
 const services = ref<ServiceHealth[]>([])
 const loading = ref(true)
 const errorMessage = ref('')
@@ -28,7 +29,7 @@ const updatedLabel = computed(() => lastUpdated.value
 async function loadData() {
   try {
     const [summaryData, metricData, serviceData, alertSummaryData, openAlerts, acknowledgedAlerts] = await Promise.all([
-      api.summary(), api.recentMetrics(), api.serviceHealth(), api.alertSummary(), api.alerts('OPEN'), api.alerts('ACKNOWLEDGED'),
+      api.summary(), api.recentMetrics(), api.serviceHealth(), api.alertSummary(), api.alerts('OPEN', severityFilter.value), api.alerts('ACKNOWLEDGED', severityFilter.value),
     ])
     summary.value = summaryData
     metrics.value = metricData
@@ -127,7 +128,7 @@ onBeforeUnmount(() => { socket?.close(); if (reconnectTimer) window.clearTimeout
       </section>
 
       <section class="panel alert-panel" id="alerts">
-        <div class="panel-heading"><div><p class="eyebrow">INCIDENT QUEUE</p><h2>告警处置队列</h2></div><span class="count">待确认 {{ alertSummary.open }} · 处理中 {{ alertSummary.acknowledged }} · 严重 {{ alertSummary.activeCritical }}</span></div>
+        <div class="panel-heading"><div><p class="eyebrow">INCIDENT QUEUE</p><h2>告警处置队列</h2></div><div class="alert-controls"><select v-model="severityFilter" aria-label="按告警级别筛选" @change="loadData"><option value="">全部级别</option><option value="CRITICAL">严重</option><option value="WARNING">警告</option></select><span class="count">待确认 {{ alertSummary.open }} · 处理中 {{ alertSummary.acknowledged }} · 严重 {{ alertSummary.activeCritical }}</span></div></div>
         <div v-if="alerts.length === 0" class="empty">当前没有待处理告警</div>
         <div v-else class="alert-table-wrap">
           <table>

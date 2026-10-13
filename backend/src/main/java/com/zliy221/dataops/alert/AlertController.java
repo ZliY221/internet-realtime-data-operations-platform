@@ -11,8 +11,11 @@ public class AlertController {
     public AlertController(AlertService service) { this.service = service; }
 
     @GetMapping
-    public List<Alert> list(@RequestParam(defaultValue = "OPEN") AlertStatus status) {
-        return service.list(status);
+    public List<Alert> list(
+            @RequestParam(defaultValue = "OPEN") AlertStatus status,
+            @RequestParam(required = false) AlertSeverity severity
+    ) {
+        return service.list(status, severity);
     }
 
     @GetMapping("/summary")

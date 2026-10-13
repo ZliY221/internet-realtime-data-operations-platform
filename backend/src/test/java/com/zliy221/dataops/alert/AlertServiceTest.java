@@ -7,6 +7,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
+
 class AlertServiceTest {
     @Test
     void summarizesLifecycleAndActiveSeverity() {
@@ -24,5 +26,16 @@ class AlertServiceTest {
         assertThat(summary.resolved()).isEqualTo(9);
         assertThat(summary.activeCritical()).isEqualTo(3);
         assertThat(summary.activeWarning()).isEqualTo(3);
+    }
+
+    @Test
+    void filtersAlertQueueBySeverityWhenRequested() {
+        AlertRepository repository = mock(AlertRepository.class);
+        when(repository.findTop100ByStatusAndSeverityOrderByCreatedAtDesc(
+                AlertStatus.OPEN, AlertSeverity.CRITICAL
+        )).thenReturn(List.of());
+        AlertService service = new AlertService(repository, mock(MetricWebSocketHandler.class));
+
+        assertThat(service.list(AlertStatus.OPEN, AlertSeverity.CRITICAL)).isEmpty();
     }
 }

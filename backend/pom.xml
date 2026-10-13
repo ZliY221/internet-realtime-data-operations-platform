@@ -13,7 +13,7 @@
 
     <groupId>com.zliy221</groupId>
     <artifactId>internet-data-operations-platform</artifactId>
-    <version>0.1.2</version>
+    <version>0.2.2</version>
     <name>internet-data-operations-platform</name>
     <description>Internet traffic monitoring and data operations platform</description>
 
