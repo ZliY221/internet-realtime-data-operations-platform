@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: internet-data-operations-platform
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/dataops}
+    username: ${DB_USERNAME:dataops}
+    password: ${DB_PASSWORD:dataops}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+
+server:
+  port: ${SERVER_PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+app:
+  metric-simulator:
+    enabled: ${METRIC_SIMULATOR_ENABLED:false}
+    interval-ms: ${METRIC_SIMULATOR_INTERVAL_MS:5000}
+
