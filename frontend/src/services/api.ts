@@ -1,4 +1,4 @@
-import type { Alert, Metric, Summary } from '../types'
+import type { Alert, Metric, ServiceHealth, Summary } from '../types'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init)
@@ -8,6 +8,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   summary: () => request<Summary>('/api/v1/dashboard/summary?minutes=60'),
+  serviceHealth: () => request<ServiceHealth[]>('/api/v1/dashboard/services?minutes=60'),
   recentMetrics: () => request<Metric[]>('/api/v1/metrics/recent?limit=80'),
   alerts: (status: Alert['status']) => request<Alert[]>(`/api/v1/alerts?status=${status}`),
   acknowledge: (id: number) => request<Alert>(`/api/v1/alerts/${id}/acknowledge`, { method: 'POST' }),

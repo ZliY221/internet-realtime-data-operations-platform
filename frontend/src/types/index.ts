@@ -31,6 +31,16 @@ export interface Summary {
   activeServices: number
 }
 
+export interface ServiceHealth {
+  serviceName: string
+  requestCount: number
+  errorCount: number
+  errorRate: number
+  averageP95LatencyMs: number
+  latestCollectedAt: string
+  status: 'HEALTHY' | 'DEGRADED'
+}
+
 export interface RealtimeEvent<T = unknown> {
   type: string
   occurredAt: string

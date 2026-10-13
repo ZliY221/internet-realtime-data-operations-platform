@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import TrendChart from './components/TrendChart.vue'
 import { api } from './services/api'
-import type { Alert, Metric, RealtimeEvent, Summary } from './types'
+import type { Alert, Metric, RealtimeEvent, ServiceHealth, Summary } from './types'
 
 const emptySummary: Summary = {
   windowStart: '', windowEnd: '', totalRequests: 0, totalErrors: 0,
@@ -11,21 +11,13 @@ const emptySummary: Summary = {
 const summary = ref<Summary>(emptySummary)
 const metrics = ref<Metric[]>([])
 const alerts = ref<Alert[]>([])
+const services = ref<ServiceHealth[]>([])
 const loading = ref(true)
 const errorMessage = ref('')
 const connected = ref(false)
 const lastUpdated = ref<Date>()
 let socket: WebSocket | undefined
 let reconnectTimer: number | undefined
-
-const latestByService = computed(() => {
-  const seen = new Set<string>()
-  return metrics.value.filter(item => {
-    if (seen.has(item.serviceName)) return false
-    seen.add(item.serviceName)
-    return true
-  })
-})
 
 const requestLabel = computed(() => new Intl.NumberFormat('zh-CN', { notation: 'compact' }).format(summary.value.totalRequests))
 const updatedLabel = computed(() => lastUpdated.value
@@ -34,11 +26,12 @@ const updatedLabel = computed(() => lastUpdated.value
 
 async function loadData() {
   try {
-    const [summaryData, metricData, openAlerts, acknowledgedAlerts] = await Promise.all([
-      api.summary(), api.recentMetrics(), api.alerts('OPEN'), api.alerts('ACKNOWLEDGED'),
+    const [summaryData, metricData, serviceData, openAlerts, acknowledgedAlerts] = await Promise.all([
+      api.summary(), api.recentMetrics(), api.serviceHealth(), api.alerts('OPEN'), api.alerts('ACKNOWLEDGED'),
     ])
     summary.value = summaryData
     metrics.value = metricData
+    services.value = serviceData
     alerts.value = [...openAlerts, ...acknowledgedAlerts]
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     lastUpdated.value = new Date()
@@ -122,10 +115,10 @@ onBeforeUnmount(() => { socket?.close(); if (reconnectTimer) window.clearTimeout
           <div class="panel-heading"><div><p class="eyebrow">SERVICE HEALTH</p><h2>服务实时状态</h2></div></div>
           <div v-if="loading" class="empty">正在加载服务指标</div>
           <div v-else class="service-list">
-            <div v-for="metric in latestByService" :key="metric.serviceName" class="service-row">
-              <div><strong>{{ metric.serviceName }}</strong><span>{{ time(metric.collectedAt) }}</span></div>
-              <div class="service-stat"><span>错误率</span><b :class="{ danger: metric.errorRate >= .05 }">{{ percent(metric.errorRate) }}</b></div>
-              <div class="service-stat"><span>P95</span><b>{{ metric.p95LatencyMs }}ms</b></div>
+            <div v-for="service in services" :key="service.serviceName" class="service-row">
+              <div><strong>{{ service.serviceName }}</strong><span>{{ time(service.latestCollectedAt) }}</span></div>
+              <div class="service-stat"><span>错误率</span><b :class="{ danger: service.status === 'DEGRADED' }">{{ percent(service.errorRate) }}</b></div>
+              <div class="service-stat"><span>平均 P95</span><b>{{ service.averageP95LatencyMs.toFixed(0) }}ms</b></div>
             </div>
           </div>
         </article>

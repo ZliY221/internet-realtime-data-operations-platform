@@ -1,11 +1,15 @@
 <script setup lang="ts">
-import * as echarts from 'echarts'
+import { LineChart } from 'echarts/charts'
+import { GridComponent, LegendComponent, TooltipComponent } from 'echarts/components'
+import { init, use, type EChartsType } from 'echarts/core'
+import { CanvasRenderer } from 'echarts/renderers'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { Metric } from '../types'
 
 const props = defineProps<{ metrics: Metric[] }>()
 const chartElement = ref<HTMLDivElement>()
-let chart: echarts.ECharts | undefined
+use([LineChart, GridComponent, LegendComponent, TooltipComponent, CanvasRenderer])
+let chart: EChartsType | undefined
 
 const seriesData = computed(() => [...props.metrics].reverse().slice(-36))
 
@@ -32,9 +36,7 @@ function render() {
         name: '请求量', type: 'line', smooth: true, showSymbol: false,
         data: data.map(item => item.requestCount),
         lineStyle: { color: '#31d6c4', width: 2 },
-        areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: 'rgba(49,214,196,.30)' }, { offset: 1, color: 'rgba(49,214,196,0)' },
-        ]) },
+        areaStyle: { color: 'rgba(49,214,196,.12)' },
       },
       {
         name: 'P95 延迟', type: 'line', yAxisIndex: 1, smooth: true, showSymbol: false,
@@ -46,7 +48,7 @@ function render() {
 
 function resize() { chart?.resize() }
 onMounted(() => {
-  if (chartElement.value) chart = echarts.init(chartElement.value)
+  if (chartElement.value) chart = init(chartElement.value)
   render()
   window.addEventListener('resize', resize)
 })
