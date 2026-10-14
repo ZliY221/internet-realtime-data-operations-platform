@@ -7,7 +7,12 @@ RUN mvn -q -DskipTests package
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app
-COPY --from=build /workspace/target/internet-data-operations-platform-0.5.3.jar app.jar
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=build /workspace/target/*.jar app.jar
 EXPOSE 8080
+HEALTHCHECK --interval=10s --timeout=3s --start-period=30s --retries=12 \
+    CMD curl --fail --silent http://127.0.0.1:8080/actuator/health >/dev/null || exit 1
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
 

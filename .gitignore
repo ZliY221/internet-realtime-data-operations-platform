@@ -3,6 +3,7 @@
 *.iml
 *.log
 .DS_Store
+build/
 backend/target/
 frontend/node_modules/
 frontend/dist/

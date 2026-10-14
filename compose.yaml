@@ -1,3 +1,5 @@
+name: internet-data-operations-platform
+
 services:
   postgres:
     image: postgres:17-alpine
@@ -29,7 +31,8 @@ services:
   frontend:
     build: ./frontend
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     ports:
       - "8088:80"
 

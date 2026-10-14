@@ -1,6 +1,6 @@
 # 用户使用指南
 
-适用版本：`v0.5.3`
+适用版本：`v0.5.4`
 
 本指南随项目版本同步更新，说明当前版本的本地运行、指标接入、实时看板和告警处置方法。首次使用建议先阅读仓库首页的项目简介、系统架构和常用入口，再按本指南启动前后端服务。
 
@@ -10,6 +10,8 @@
 - Maven 3.9 或更高版本
 - Node.js 22 或更高版本
 - 完整容器部署需要 Docker Compose
+
+本地 H2 和容器 PostgreSQL 环境独立维护。运行 `./scripts/project-doctor.ps1 -Profile Local` 或 `-Profile Container` 可检查对应环境，详细选择说明见[运行环境分层](runtime-environments.md)。
 
 ## 2. 本地启动
 
@@ -74,6 +76,8 @@ docker compose up --build
 ```
 
 该方式启动 PostgreSQL、Spring Boot 后端和前端服务。数据库表由 Flyway 管理，连接信息通过 Compose 环境变量注入。
+
+容器按 PostgreSQL、后端、前端的健康状态顺序启动。需要完整检查时执行 `./scripts/container-smoke.ps1`。
 
 ## 7. 工程验证
 
