@@ -13,7 +13,7 @@
 
     <groupId>com.zliy221</groupId>
     <artifactId>internet-data-operations-platform</artifactId>
-    <version>0.4.2</version>
+    <version>0.4.3</version>
     <name>internet-data-operations-platform</name>
     <description>Internet traffic monitoring and data operations platform</description>
 
@@ -63,6 +63,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-webmvc-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
