@@ -82,6 +82,11 @@ class ApiWorkflowIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.resolved").value(1));
 
+        mockMvc.perform(get("/api/v1/alerts/workloads"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].owner").value("未分派"))
+                .andExpect(jsonPath("$[0].total").value(1));
+
         mockMvc.perform(get("/api/v1/dashboard/summary").param("minutes", "1440"))
                 .andExpect(status().isOk());
 

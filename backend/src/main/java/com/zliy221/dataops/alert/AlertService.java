@@ -7,6 +7,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 @Service
 public class AlertService {
@@ -20,9 +22,40 @@ public class AlertService {
 
     @Transactional(readOnly = true)
     public List<Alert> list(AlertStatus status, AlertSeverity severity) {
-        return severity == null
-                ? repository.findTop100ByStatusOrderByCreatedAtDesc(status)
+        return list(status, severity, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Alert> list(AlertStatus status, AlertSeverity severity, String owner) {
+        String normalizedOwner = owner == null || owner.isBlank() ? null : owner.trim();
+        if (normalizedOwner != null && severity != null) {
+            return repository.findTop100ByStatusAndSeverityAndOwnerOrderByCreatedAtDesc(status, severity, normalizedOwner);
+        }
+        if (normalizedOwner != null) {
+            return repository.findTop100ByStatusAndOwnerOrderByCreatedAtDesc(status, normalizedOwner);
+        }
+        return severity == null ? repository.findTop100ByStatusOrderByCreatedAtDesc(status)
                 : repository.findTop100ByStatusAndSeverityOrderByCreatedAtDesc(status, severity);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AlertWorkload> workloads() {
+        Map<String, long[]> grouped = new TreeMap<>();
+        for (Alert alert : repository.findTop200ByStatusNotOrderByCreatedAtDesc(AlertStatus.RESOLVED)) {
+            String owner = alert.getOwner() == null ? "未分派" : alert.getOwner();
+            long[] counts = grouped.computeIfAbsent(owner, ignored -> new long[5]);
+            counts[0]++;
+            counts[alert.getStatus() == AlertStatus.OPEN ? 1 : 2]++;
+            counts[alert.getSeverity() == AlertSeverity.CRITICAL ? 3 : 4]++;
+        }
+        return grouped.entrySet().stream()
+                .map(entry -> new AlertWorkload(entry.getKey(), entry.getValue()[0], entry.getValue()[1],
+                        entry.getValue()[2], entry.getValue()[3], entry.getValue()[4]))
+                .sorted((left, right) -> {
+                    int critical = Long.compare(right.critical(), left.critical());
+                    return critical != 0 ? critical : Long.compare(right.total(), left.total());
+                })
+                .toList();
     }
 
     @Transactional(readOnly = true)

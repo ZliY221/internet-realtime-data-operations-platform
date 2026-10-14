@@ -29,6 +29,15 @@ export interface AlertSummary {
   activeWarning: number
 }
 
+export interface AlertWorkload {
+  owner: string
+  total: number
+  open: number
+  acknowledged: number
+  critical: number
+  warning: number
+}
+
 export interface Summary {
   windowStart: string
   windowEnd: string

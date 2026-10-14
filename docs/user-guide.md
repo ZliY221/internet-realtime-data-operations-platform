@@ -1,6 +1,6 @@
 # 用户使用指南
 
-适用版本：`v0.4.3`
+适用版本：`v0.5.3`
 
 本指南随项目版本同步更新，说明当前版本的本地运行、指标接入、实时看板和告警处置方法。首次使用建议先阅读仓库首页的项目简介、系统架构和常用入口，再按本指南启动前后端服务。
 
@@ -54,11 +54,13 @@ npm run dev
 - 告警中心：展示待确认、处理中、严重告警摘要与处置队列。
 - 告警级别筛选：可切换全部、严重和警告，只查看当前需要处理的对应队列。
 - 告警责任人：在处置队列中选择平台值班、数据值班或服务负责人，分派结果会实时同步到其他页面。
+- 责任负载：按负责人汇总活动告警、待确认和严重告警；未分派告警单独展示，并可按负责人和级别组合筛选队列。
 
 ## 5. 告警处置
 
 - `GET /api/v1/alerts/summary`：查看生命周期和严重级别汇总。
-- `GET /api/v1/alerts?status=OPEN&severity=CRITICAL`：按状态和可选级别查询告警。
+- `GET /api/v1/alerts/workloads`：查看活动告警的负责人负载。
+- `GET /api/v1/alerts?status=OPEN&severity=CRITICAL&owner=data-oncall`：按状态、级别和负责人查询告警。
 - `POST /api/v1/alerts/{id}/acknowledge`：确认告警并进入处理中。
 - `POST /api/v1/alerts/{id}/resolve`：解决告警。
 - `PATCH /api/v1/alerts/{id}/owner`：提交 `{ "owner": "platform-oncall" }` 分派负责人。

@@ -13,13 +13,17 @@ public class AlertController {
     @GetMapping
     public List<Alert> list(
             @RequestParam(defaultValue = "OPEN") AlertStatus status,
-            @RequestParam(required = false) AlertSeverity severity
+            @RequestParam(required = false) AlertSeverity severity,
+            @RequestParam(required = false) String owner
     ) {
-        return service.list(status, severity);
+        return service.list(status, severity, owner);
     }
 
     @GetMapping("/summary")
     public AlertSummary summary() { return service.summary(); }
+
+    @GetMapping("/workloads")
+    public List<AlertWorkload> workloads() { return service.workloads(); }
 
     @PostMapping("/{id}/acknowledge")
     public Alert acknowledge(@PathVariable long id) { return service.acknowledge(id); }

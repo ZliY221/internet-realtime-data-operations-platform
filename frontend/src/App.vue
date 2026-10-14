@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import TrendChart from './components/TrendChart.vue'
 import { api } from './services/api'
-import type { Alert, AlertSummary, Metric, RealtimeEvent, ServiceHealth, Summary } from './types'
+import type { Alert, AlertSummary, AlertWorkload, Metric, RealtimeEvent, ServiceHealth, Summary } from './types'
 
 const emptySummary: Summary = {
   windowStart: '', windowEnd: '', totalRequests: 0, totalErrors: 0,
@@ -13,6 +13,8 @@ const metrics = ref<Metric[]>([])
 const alerts = ref<Alert[]>([])
 const alertSummary = ref<AlertSummary>({ open: 0, acknowledged: 0, resolved: 0, activeCritical: 0, activeWarning: 0 })
 const severityFilter = ref<'' | Alert['severity']>('')
+const ownerFilter = ref('')
+const alertWorkloads = ref<AlertWorkload[]>([])
 const services = ref<ServiceHealth[]>([])
 const loading = ref(true)
 const errorMessage = ref('')
@@ -28,13 +30,14 @@ const updatedLabel = computed(() => lastUpdated.value
 
 async function loadData() {
   try {
-    const [summaryData, metricData, serviceData, alertSummaryData, openAlerts, acknowledgedAlerts] = await Promise.all([
-      api.summary(), api.recentMetrics(), api.serviceHealth(), api.alertSummary(), api.alerts('OPEN', severityFilter.value), api.alerts('ACKNOWLEDGED', severityFilter.value),
+    const [summaryData, metricData, serviceData, alertSummaryData, workloadData, openAlerts, acknowledgedAlerts] = await Promise.all([
+      api.summary(), api.recentMetrics(), api.serviceHealth(), api.alertSummary(), api.alertWorkloads(), api.alerts('OPEN', severityFilter.value, ownerFilter.value), api.alerts('ACKNOWLEDGED', severityFilter.value, ownerFilter.value),
     ])
     summary.value = summaryData
     metrics.value = metricData
     services.value = serviceData
     alertSummary.value = alertSummaryData
+    alertWorkloads.value = workloadData
     alerts.value = [...openAlerts, ...acknowledgedAlerts]
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     lastUpdated.value = new Date()
@@ -139,7 +142,8 @@ onBeforeUnmount(() => { socket?.close(); if (reconnectTimer) window.clearTimeout
       </section>
 
       <section class="panel alert-panel" id="alerts">
-        <div class="panel-heading"><div><p class="eyebrow">INCIDENT QUEUE</p><h2>告警处置队列</h2></div><div class="alert-controls"><select v-model="severityFilter" aria-label="按告警级别筛选" @change="loadData"><option value="">全部级别</option><option value="CRITICAL">严重</option><option value="WARNING">警告</option></select><span class="count">待确认 {{ alertSummary.open }} · 处理中 {{ alertSummary.acknowledged }} · 严重 {{ alertSummary.activeCritical }}</span></div></div>
+        <div class="panel-heading"><div><p class="eyebrow">INCIDENT QUEUE</p><h2>告警处置队列</h2></div><div class="alert-controls"><select v-model="severityFilter" aria-label="按告警级别筛选" @change="loadData"><option value="">全部级别</option><option value="CRITICAL">严重</option><option value="WARNING">警告</option></select><select v-model="ownerFilter" aria-label="按负责人筛选" @change="loadData"><option value="">全部负责人</option><option v-for="item in alertWorkloads.filter(item => item.owner !== '未分派')" :key="item.owner" :value="item.owner">{{ item.owner }}</option></select><span class="count">待确认 {{ alertSummary.open }} · 处理中 {{ alertSummary.acknowledged }} · 严重 {{ alertSummary.activeCritical }}</span></div></div>
+        <div class="workload-strip" aria-label="告警责任负载"><article v-for="item in alertWorkloads" :key="item.owner"><span>{{ item.owner }}</span><strong>{{ item.total }}</strong><small>待确认 {{ item.open }} · 严重 {{ item.critical }}</small></article></div>
         <div v-if="alerts.length === 0" class="empty">当前没有待处理告警</div>
         <div v-else class="alert-table-wrap">
           <table>
