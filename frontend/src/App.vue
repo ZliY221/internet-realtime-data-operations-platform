@@ -116,9 +116,21 @@ function toggleAll(checked: boolean) {
 }
 
 async function focusService(serviceName: string) {
-  serviceFilter.value = serviceName
+  serviceFilter.value = serviceFilter.value === serviceName ? '' : serviceName
+  selectedAlerts.value = new Set()
   await loadData()
   document.querySelector('#traffic')?.scrollIntoView({ behavior: 'smooth' })
+}
+
+async function clearServiceFocus() {
+  serviceFilter.value = ''
+  selectedAlerts.value = new Set()
+  await loadData()
+}
+
+async function changeServiceFilter() {
+  selectedAlerts.value = new Set()
+  await loadData()
 }
 
 async function bulkUpdate(action: 'acknowledge' | 'resolve') {
@@ -186,7 +198,7 @@ onBeforeUnmount(() => { socket?.close(); if (reconnectTimer) window.clearTimeout
 
       <section class="content-grid" id="traffic">
         <article class="panel trend-panel">
-          <div class="panel-heading"><div><p class="eyebrow">TRAFFIC TREND</p><h2>请求量与响应延迟</h2></div><span class="period">{{ trendScopeLabel }}</span></div>
+          <div class="panel-heading"><div><p class="eyebrow">TRAFFIC TREND</p><h2>请求量与响应延迟</h2></div><div class="trend-scope"><span class="period">{{ trendScopeLabel }}</span><button v-if="serviceFilter" type="button" @click="clearServiceFocus">查看全部服务</button></div></div>
           <TrendChart :metrics="metrics" />
         </article>
 
@@ -194,17 +206,17 @@ onBeforeUnmount(() => { socket?.close(); if (reconnectTimer) window.clearTimeout
           <div class="panel-heading"><div><p class="eyebrow">SERVICE HEALTH</p><h2>服务实时状态</h2></div></div>
           <div v-if="loading" class="empty">正在加载服务指标</div>
           <div v-else class="service-list">
-            <div v-for="service in services" :key="service.serviceName" class="service-row">
+            <div v-for="service in services" :key="service.serviceName" :class="['service-row', { active: serviceFilter === service.serviceName }]">
               <div><strong>{{ service.serviceName }}</strong><span>{{ time(service.latestCollectedAt) }}</span></div>
               <div class="service-stat"><span>错误率</span><b :class="{ danger: service.status === 'DEGRADED' }">{{ percent(service.errorRate) }}</b></div>
-              <div class="service-stat"><span>平均 P95</span><b>{{ service.averageP95LatencyMs.toFixed(0) }}ms</b></div><button class="service-focus" @click="focusService(service.serviceName)">查看趋势</button>
+              <div class="service-stat"><span>平均 P95</span><b>{{ service.averageP95LatencyMs.toFixed(0) }}ms</b></div><button class="service-focus" @click="focusService(service.serviceName)">{{ serviceFilter === service.serviceName ? '取消聚焦' : '查看趋势' }}</button>
             </div>
           </div>
         </article>
       </section>
 
       <section class="panel alert-panel" id="alerts">
-        <div class="panel-heading"><div><p class="eyebrow">INCIDENT QUEUE</p><h2>告警处置队列</h2></div><div class="alert-controls"><select v-model="serviceFilter" aria-label="按服务筛选" @change="loadData"><option value="">全部服务</option><option v-for="service in services" :key="service.serviceName" :value="service.serviceName">{{ service.serviceName }}</option></select><select v-model="severityFilter" aria-label="按告警级别筛选" @change="loadData"><option value="">全部级别</option><option value="CRITICAL">严重</option><option value="WARNING">警告</option></select><select v-model="ownerFilter" aria-label="按负责人筛选" @change="loadData"><option value="">全部负责人</option><option v-for="item in alertWorkloads.filter(item => item.owner !== '未分派')" :key="item.owner" :value="item.owner">{{ item.owner }}</option></select><span class="count">待确认 {{ alertSummary.open }} · 处理中 {{ alertSummary.acknowledged }} · 严重 {{ alertSummary.activeCritical }}</span></div></div>
+        <div class="panel-heading"><div><p class="eyebrow">INCIDENT QUEUE</p><h2>告警处置队列</h2></div><div class="alert-controls"><select v-model="serviceFilter" aria-label="按服务筛选" @change="changeServiceFilter"><option value="">全部服务</option><option v-for="service in services" :key="service.serviceName" :value="service.serviceName">{{ service.serviceName }}</option></select><select v-model="severityFilter" aria-label="按告警级别筛选" @change="loadData"><option value="">全部级别</option><option value="CRITICAL">严重</option><option value="WARNING">警告</option></select><select v-model="ownerFilter" aria-label="按负责人筛选" @change="loadData"><option value="">全部负责人</option><option v-for="item in alertWorkloads.filter(item => item.owner !== '未分派')" :key="item.owner" :value="item.owner">{{ item.owner }}</option></select><span class="count">待确认 {{ alertSummary.open }} · 处理中 {{ alertSummary.acknowledged }} · 严重 {{ alertSummary.activeCritical }}</span></div></div>
         <div class="bulk-actions"><span>已选择 {{ selectedAlerts.size }} 条告警</span><button :disabled="!selectedAlerts.size || bulkUpdating" @click="bulkUpdate('acknowledge')">批量确认</button><button class="primary" :disabled="!selectedAlerts.size || bulkUpdating" @click="bulkUpdate('resolve')">批量解决</button></div>
         <div class="workload-strip" aria-label="告警责任负载"><article v-for="item in alertWorkloads" :key="item.owner"><span>{{ item.owner }}</span><strong>{{ item.total }}</strong><small>待确认 {{ item.open }} · 严重 {{ item.critical }}</small></article></div>
         <div v-if="alerts.length === 0" class="empty">当前没有待处理告警</div>

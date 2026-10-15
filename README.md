@@ -5,7 +5,7 @@
 Spring Boot 与 Vue 构建的全栈实时数据应用，统一完成流量接入、服务健康分析和告警协同处置。
 
 [![CI](https://github.com/ZliY221/internet-realtime-data-operations-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/ZliY221/internet-realtime-data-operations-platform/actions/workflows/ci.yml)
-![Version](https://img.shields.io/badge/version-v0.10.0-32d6c4)
+![Version](https://img.shields.io/badge/version-v0.11.0-32d6c4)
 ![Java](https://img.shields.io/badge/Java-21-ef4b4b)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.1-6db33f)
 ![Vue](https://img.shields.io/badge/Vue-3-42b883)
@@ -87,6 +87,7 @@ flowchart LR
 - 告警队列支持多选、后端事务化批量确认和批量解决，操作结果继续通过实时通道同步。
 - 告警队列支持按服务、级别和负责人组合筛选，实时事件到达后保持当前筛选上下文。
 - 服务健康列表可一键进入单服务视图，趋势图与告警队列同步聚焦对应服务。
+- 当前聚焦服务在列表中高亮，可再次点击或使用趋势区按钮快速恢复全部服务。
 
 ### 数据与部署
 
@@ -134,7 +135,7 @@ compose.yaml   PostgreSQL、后端与前端编排
 
 ## 版本与维护
 
-当前版本为 `v0.10.0`。每次发布同步维护[用户使用指南](docs/user-guide.md)、[版本记录](CHANGELOG.md)和[版本摘要](VERSION_LOG.md)。
+当前版本为 `v0.11.0`。每次发布同步维护[用户使用指南](docs/user-guide.md)、[版本记录](CHANGELOG.md)和[版本摘要](VERSION_LOG.md)。
 
 ## License
 
