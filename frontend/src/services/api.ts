@@ -10,7 +10,11 @@ export const api = {
   ingestMetric: (metric: MetricInput) => request<Metric>('/api/v1/metrics', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(metric),
   }),
-  summary: () => request<Summary>('/api/v1/dashboard/summary?minutes=60'),
+  summary: (serviceName = '') => {
+    const query = new URLSearchParams({ minutes: '60' })
+    if (serviceName) query.set('serviceName', serviceName)
+    return request<Summary>(`/api/v1/dashboard/summary?${query}`)
+  },
   serviceHealth: () => request<ServiceHealth[]>('/api/v1/dashboard/services?minutes=60'),
   recentMetrics: (serviceName = '') => {
     const query = new URLSearchParams({ limit: '80' })

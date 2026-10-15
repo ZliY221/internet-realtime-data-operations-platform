@@ -16,5 +16,6 @@ public interface AlertRepository extends JpaRepository<Alert, Long> {
     long countByStatus(AlertStatus status);
     long countBySeverityAndStatusNot(AlertSeverity severity, AlertStatus status);
     long countByStatusNot(AlertStatus status);
+    long countByServiceNameAndStatusNot(String serviceName, AlertStatus status);
 }
 

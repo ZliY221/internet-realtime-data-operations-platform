@@ -190,5 +190,15 @@ class ApiWorkflowIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].serviceName").value("checkout"));
+        mockMvc.perform(get("/api/v1/dashboard/summary")
+                        .param("minutes", "1440")
+                        .param("serviceName", "checkout"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalRequests").value(1000))
+                .andExpect(jsonPath("$.activeAlerts").value(2))
+                .andExpect(jsonPath("$.activeServices").value(1));
+        mockMvc.perform(get("/api/v1/dashboard/summary")
+                        .param("serviceName", "x".repeat(81)))
+                .andExpect(status().isBadRequest());
     }
 }

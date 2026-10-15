@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -28,17 +30,28 @@ public class DashboardController {
     }
 
     @GetMapping("/summary")
-    public DashboardSummary summary(@RequestParam(defaultValue = "60") int minutes) {
+    public DashboardSummary summary(
+            @RequestParam(defaultValue = "60") int minutes,
+            @RequestParam(required = false) String serviceName
+    ) {
         int safeMinutes = Math.max(1, Math.min(minutes, 1440));
         Instant end = Instant.now();
         Instant start = end.minus(safeMinutes, ChronoUnit.MINUTES);
-        List<TrafficMetric> metrics = metricRepository.findSince(start);
+        String normalizedService = serviceName == null || serviceName.isBlank() ? null : serviceName.trim();
+        if (normalizedService != null && normalizedService.length() > 80) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "serviceName 不能超过 80 个字符");
+        }
+        List<TrafficMetric> metrics = normalizedService == null
+                ? metricRepository.findSince(start)
+                : metricRepository.findSinceForService(start, normalizedService);
         long requests = metrics.stream().mapToLong(TrafficMetric::getRequestCount).sum();
         long errors = metrics.stream().mapToLong(TrafficMetric::getErrorCount).sum();
         double avgP95 = metrics.stream().mapToLong(TrafficMetric::getP95LatencyMs).average().orElse(0);
         return new DashboardSummary(start, end, requests, errors,
                 requests == 0 ? 0 : (double) errors / requests, avgP95,
-                alertRepository.countByStatusNot(AlertStatus.RESOLVED),
+                normalizedService == null
+                        ? alertRepository.countByStatusNot(AlertStatus.RESOLVED)
+                        : alertRepository.countByServiceNameAndStatusNot(normalizedService, AlertStatus.RESOLVED),
                 (int) metrics.stream().map(TrafficMetric::getServiceName).distinct().count());
     }
 

@@ -19,7 +19,7 @@
 
 ## 运营摘要
 
-- `GET /api/v1/dashboard/summary?minutes=60`：查询指定时间窗口内的请求量、错误率、平均 P95 延迟与未解决告警数。
+- `GET /api/v1/dashboard/summary?minutes=60&serviceName=checkout`：查询指定时间窗口内的请求量、错误率、平均 P95 延迟与未解决告警数；`serviceName` 可选，用于单服务 KPI 口径。
 - `GET /api/v1/dashboard/services?minutes=60`：按服务聚合请求量、错误率、平均 P95 延迟和健康状态，异常服务优先返回。
 
 ## 告警

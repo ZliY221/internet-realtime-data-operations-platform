@@ -33,11 +33,12 @@ const updatedLabel = computed(() => lastUpdated.value
   ? lastUpdated.value.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
   : '--:--:--')
 const trendScopeLabel = computed(() => serviceFilter.value ? `${serviceFilter.value} · 最近 80 个采样点` : '全部服务 · 最近 60 分钟')
+const summaryScopeLabel = computed(() => serviceFilter.value ? `${serviceFilter.value} · ` : '近 60 分钟')
 
 async function loadData() {
   try {
     const [summaryData, metricData, serviceData, alertSummaryData, workloadData, openAlerts, acknowledgedAlerts] = await Promise.all([
-      api.summary(), api.recentMetrics(serviceFilter.value), api.serviceHealth(), api.alertSummary(), api.alertWorkloads(), api.alerts('OPEN', severityFilter.value, ownerFilter.value, serviceFilter.value), api.alerts('ACKNOWLEDGED', severityFilter.value, ownerFilter.value, serviceFilter.value),
+      api.summary(serviceFilter.value), api.recentMetrics(serviceFilter.value), api.serviceHealth(), api.alertSummary(), api.alertWorkloads(), api.alerts('OPEN', severityFilter.value, ownerFilter.value, serviceFilter.value), api.alerts('ACKNOWLEDGED', severityFilter.value, ownerFilter.value, serviceFilter.value),
     ])
     summary.value = summaryData
     metrics.value = metricData
@@ -190,7 +191,7 @@ onBeforeUnmount(() => { socket?.close(); if (reconnectTimer) window.clearTimeout
       </section>
 
       <section class="kpi-grid" aria-label="关键运营指标">
-        <article class="kpi"><p>近 60 分钟请求量</p><strong>{{ requestLabel }}</strong><span>累计访问请求</span></article>
+        <article class="kpi"><p>{{ summaryScopeLabel }}请求量</p><strong>{{ requestLabel }}</strong><span>累计访问请求</span></article>
         <article class="kpi"><p>错误率</p><strong :class="{ danger: summary.errorRate >= .05 }">{{ percent(summary.errorRate) }}</strong><span>错误 {{ summary.totalErrors.toLocaleString() }} 次</span></article>
         <article class="kpi"><p>平均 P95 延迟</p><strong>{{ summary.averageP95LatencyMs.toFixed(0) }}<i> ms</i></strong><span>覆盖 {{ summary.activeServices }} 个服务</span></article>
         <article class="kpi"><p>待处理告警</p><strong class="warning">{{ summary.activeAlerts }}</strong><span>需要运营跟进</span></article>

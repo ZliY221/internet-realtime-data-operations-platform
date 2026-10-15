@@ -14,5 +14,11 @@ public interface TrafficMetricRepository extends JpaRepository<TrafficMetric, Lo
 
     @Query("select m from TrafficMetric m where m.collectedAt >= :since order by m.collectedAt asc")
     List<TrafficMetric> findSince(@Param("since") Instant since);
+
+    @Query("select m from TrafficMetric m where m.collectedAt >= :since and m.serviceName = :serviceName order by m.collectedAt asc")
+    List<TrafficMetric> findSinceForService(
+            @Param("since") Instant since,
+            @Param("serviceName") String serviceName
+    );
 }
 
