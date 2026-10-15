@@ -65,3 +65,11 @@ export interface RealtimeEvent<T = unknown> {
   payload?: T
 }
 
+export interface MetricInput {
+  serviceName: string
+  requestCount: number
+  errorCount: number
+  p95LatencyMs: number
+  collectedAt: string
+}
+
