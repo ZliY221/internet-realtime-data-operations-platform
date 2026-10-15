@@ -12,6 +12,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
+import java.time.Instant;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -169,6 +170,30 @@ class ApiWorkflowIntegrationTest {
     }
 
     @Test
+    void recentMetricsRespectTheRequestedObservationWindow() throws Exception {
+        String stale = Instant.now().minusSeconds(7200).toString();
+        String current = Instant.now().minusSeconds(30).toString();
+        mockMvc.perform(post("/api/v1/metrics")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"serviceName\":\"checkout\",\"requestCount\":100,\"errorCount\":1,"
+                                + "\"p95LatencyMs\":200,\"collectedAt\":\"" + stale + "\"}"))
+                .andExpect(status().isCreated());
+        mockMvc.perform(post("/api/v1/metrics")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"serviceName\":\"checkout\",\"requestCount\":200,\"errorCount\":2,"
+                                + "\"p95LatencyMs\":250,\"collectedAt\":\"" + current + "\"}"))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/v1/metrics/recent")
+                        .param("limit", "80")
+                        .param("minutes", "60")
+                        .param("serviceName", "checkout"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].requestCount").value(200));
+    }
+
+    @Test
     void alertQueueCanBeFilteredByService() throws Exception {
         for (String service : List.of("gateway", "checkout")) {
             mockMvc.perform(post("/api/v1/metrics")
@@ -186,6 +211,7 @@ class ApiWorkflowIntegrationTest {
                 .andExpect(jsonPath("$[0].serviceName").value("checkout"));
         mockMvc.perform(get("/api/v1/metrics/recent")
                         .param("limit", "80")
+                        .param("minutes", "1440")
                         .param("serviceName", "checkout"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))

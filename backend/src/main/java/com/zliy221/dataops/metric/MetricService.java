@@ -11,6 +11,9 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
+import java.util.Comparator;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 @Service
 public class MetricService {
@@ -50,17 +53,34 @@ public class MetricService {
 
     @Transactional(readOnly = true)
     public List<MetricResponse> recent(int limit, String serviceName) {
+        return recent(limit, serviceName, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<MetricResponse> recent(int limit, String serviceName, Integer minutes) {
         int safeLimit = Math.max(1, Math.min(limit, 500));
         String normalizedService = serviceName == null || serviceName.isBlank() ? null : serviceName.trim();
         if (normalizedService != null && normalizedService.length() > 80) {
             throw new IllegalArgumentException("serviceName 不能超过 80 个字符");
         }
-        List<TrafficMetric> metrics = normalizedService == null
-                ? metricRepository.findAllByOrderByCollectedAtDesc(PageRequest.of(0, safeLimit))
-                : metricRepository.findByServiceNameOrderByCollectedAtDesc(
-                        normalizedService, PageRequest.of(0, safeLimit));
+        List<TrafficMetric> metrics;
+        if (minutes == null) {
+            metrics = normalizedService == null
+                    ? metricRepository.findAllByOrderByCollectedAtDesc(PageRequest.of(0, safeLimit))
+                    : metricRepository.findByServiceNameOrderByCollectedAtDesc(
+                            normalizedService, PageRequest.of(0, safeLimit));
+        } else {
+            int safeMinutes = Math.max(1, Math.min(minutes, 1440));
+            Instant since = Instant.now().minus(safeMinutes, ChronoUnit.MINUTES);
+            metrics = normalizedService == null
+                    ? metricRepository.findSince(since)
+                    : metricRepository.findSinceForService(since, normalizedService);
+        }
         return metrics
-                .stream().map(MetricResponse::from).toList();
+                .stream()
+                .sorted(Comparator.comparing(TrafficMetric::getCollectedAt).reversed())
+                .limit(safeLimit)
+                .map(MetricResponse::from).toList();
     }
 
     private void afterCommit(Runnable action) {

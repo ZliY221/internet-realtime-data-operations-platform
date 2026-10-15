@@ -15,6 +15,7 @@ const alertSummary = ref<AlertSummary>({ open: 0, acknowledged: 0, resolved: 0, 
 const severityFilter = ref<'' | Alert['severity']>('')
 const ownerFilter = ref('')
 const serviceFilter = ref('')
+const timeWindowMinutes = ref(60)
 const alertWorkloads = ref<AlertWorkload[]>([])
 const services = ref<ServiceHealth[]>([])
 const loading = ref(true)
@@ -32,13 +33,14 @@ const requestLabel = computed(() => new Intl.NumberFormat('zh-CN', { notation: '
 const updatedLabel = computed(() => lastUpdated.value
   ? lastUpdated.value.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
   : '--:--:--')
-const trendScopeLabel = computed(() => serviceFilter.value ? `${serviceFilter.value} · 最近 80 个采样点` : '全部服务 · 最近 60 分钟')
-const summaryScopeLabel = computed(() => serviceFilter.value ? `${serviceFilter.value} · ` : '近 60 分钟')
+const timeWindowLabel = computed(() => ({ 15: '近 15 分钟', 60: '近 1 小时', 180: '近 3 小时', 1440: '近 24 小时' }[timeWindowMinutes.value] || `近 ${timeWindowMinutes.value} 分钟`))
+const trendScopeLabel = computed(() => serviceFilter.value ? `${serviceFilter.value} · ${timeWindowLabel.value}` : `全部服务 · ${timeWindowLabel.value}`)
+const summaryScopeLabel = computed(() => serviceFilter.value ? `${serviceFilter.value} · ${timeWindowLabel.value}` : timeWindowLabel.value)
 
 async function loadData() {
   try {
     const [summaryData, metricData, serviceData, alertSummaryData, workloadData, openAlerts, acknowledgedAlerts] = await Promise.all([
-      api.summary(serviceFilter.value), api.recentMetrics(serviceFilter.value), api.serviceHealth(), api.alertSummary(), api.alertWorkloads(), api.alerts('OPEN', severityFilter.value, ownerFilter.value, serviceFilter.value), api.alerts('ACKNOWLEDGED', severityFilter.value, ownerFilter.value, serviceFilter.value),
+      api.summary(serviceFilter.value, timeWindowMinutes.value), api.recentMetrics(serviceFilter.value, timeWindowMinutes.value), api.serviceHealth(timeWindowMinutes.value), api.alertSummary(), api.alertWorkloads(), api.alerts('OPEN', severityFilter.value, ownerFilter.value, serviceFilter.value), api.alerts('ACKNOWLEDGED', severityFilter.value, ownerFilter.value, serviceFilter.value),
     ])
     summary.value = summaryData
     metrics.value = metricData
@@ -134,6 +136,11 @@ async function changeServiceFilter() {
   await loadData()
 }
 
+async function changeTimeWindow() {
+  selectedAlerts.value = new Set()
+  await loadData()
+}
+
 async function bulkUpdate(action: 'acknowledge' | 'resolve') {
   const targets = alerts.value.filter(alert => selectedAlerts.value.has(alert.id))
   if (!targets.length) return
@@ -174,7 +181,7 @@ onBeforeUnmount(() => { socket?.close(); if (reconnectTimer) window.clearTimeout
     <main>
       <header class="topbar" id="overview">
         <div><p class="eyebrow">OPERATIONS CENTER</p><h1>互联网流量实时监控</h1></div>
-        <div class="update-time"><span>数据更新时间</span><strong>{{ updatedLabel }}</strong></div>
+        <div class="topbar-actions"><label class="time-window"><span>观察窗口</span><select v-model.number="timeWindowMinutes" aria-label="选择实时观察窗口" @change="changeTimeWindow"><option :value="15">近 15 分钟</option><option :value="60">近 1 小时</option><option :value="180">近 3 小时</option><option :value="1440">近 24 小时</option></select></label><div class="update-time"><span>数据更新时间</span><strong>{{ updatedLabel }}</strong></div></div>
       </header>
 
       <p v-if="errorMessage" class="error-banner">{{ errorMessage }} <button @click="loadData">重新加载</button></p>
