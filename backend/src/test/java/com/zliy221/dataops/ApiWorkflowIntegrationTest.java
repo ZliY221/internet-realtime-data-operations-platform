@@ -11,6 +11,8 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -164,5 +166,23 @@ class ApiWorkflowIntegrationTest {
                         .content("{\"ids\":[" + id + "," + id + "],\"action\":\"ACKNOWLEDGE\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.count").value(1));
+    }
+
+    @Test
+    void alertQueueCanBeFilteredByService() throws Exception {
+        for (String service : List.of("gateway", "checkout")) {
+            mockMvc.perform(post("/api/v1/metrics")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"serviceName\":\"" + service
+                                    + "\",\"requestCount\":1000,\"errorCount\":90,"
+                                    + "\"p95LatencyMs\":950,\"collectedAt\":\"2026-10-15T03:00:00Z\"}"))
+                    .andExpect(status().isCreated());
+        }
+        mockMvc.perform(get("/api/v1/alerts")
+                        .param("status", "OPEN")
+                        .param("serviceName", "checkout"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].serviceName").value("checkout"));
     }
 }

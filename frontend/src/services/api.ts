@@ -13,10 +13,11 @@ export const api = {
   summary: () => request<Summary>('/api/v1/dashboard/summary?minutes=60'),
   serviceHealth: () => request<ServiceHealth[]>('/api/v1/dashboard/services?minutes=60'),
   recentMetrics: () => request<Metric[]>('/api/v1/metrics/recent?limit=80'),
-  alerts: (status: Alert['status'], severity = '', owner = '') => {
+  alerts: (status: Alert['status'], severity = '', owner = '', serviceName = '') => {
     const query = new URLSearchParams({ status })
     if (severity) query.set('severity', severity)
     if (owner) query.set('owner', owner)
+    if (serviceName) query.set('serviceName', serviceName)
     return request<Alert[]>(`/api/v1/alerts?${query}`)
   },
   alertSummary: () => request<AlertSummary>('/api/v1/alerts/summary'),

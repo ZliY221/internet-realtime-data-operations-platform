@@ -24,7 +24,7 @@
 
 ## 告警
 
-- `GET /api/v1/alerts?status=OPEN`：按状态查询告警。
+- `GET /api/v1/alerts?status=OPEN&serviceName=checkout`：按状态查询告警，并可叠加 `severity`、`owner` 和 `serviceName` 条件。
 - `POST /api/v1/alerts/{id}/acknowledge`：确认告警。
 - `POST /api/v1/alerts/{id}/resolve`：解决告警。
 

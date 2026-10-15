@@ -23,12 +23,36 @@ public class AlertService {
 
     @Transactional(readOnly = true)
     public List<Alert> list(AlertStatus status, AlertSeverity severity) {
-        return list(status, severity, null);
+        return list(status, severity, null, null);
     }
 
     @Transactional(readOnly = true)
     public List<Alert> list(AlertStatus status, AlertSeverity severity, String owner) {
+        return list(status, severity, owner, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Alert> list(AlertStatus status, AlertSeverity severity, String owner, String serviceName) {
         String normalizedOwner = owner == null || owner.isBlank() ? null : owner.trim();
+        String normalizedService = serviceName == null || serviceName.isBlank() ? null : serviceName.trim();
+        if (normalizedService != null && normalizedService.length() > 80) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "服务名称不能超过 80 个字符");
+        }
+        if (normalizedService != null && normalizedOwner != null && severity != null) {
+            return repository.findTop100ByStatusAndSeverityAndOwnerAndServiceNameOrderByCreatedAtDesc(
+                    status, severity, normalizedOwner, normalizedService);
+        }
+        if (normalizedService != null && normalizedOwner != null) {
+            return repository.findTop100ByStatusAndOwnerAndServiceNameOrderByCreatedAtDesc(
+                    status, normalizedOwner, normalizedService);
+        }
+        if (normalizedService != null && severity != null) {
+            return repository.findTop100ByStatusAndSeverityAndServiceNameOrderByCreatedAtDesc(
+                    status, severity, normalizedService);
+        }
+        if (normalizedService != null) {
+            return repository.findTop100ByStatusAndServiceNameOrderByCreatedAtDesc(status, normalizedService);
+        }
         if (normalizedOwner != null && severity != null) {
             return repository.findTop100ByStatusAndSeverityAndOwnerOrderByCreatedAtDesc(status, severity, normalizedOwner);
         }
