@@ -1,4 +1,4 @@
-import type { Alert, AlertSummary, AlertWorkload, Metric, MetricInput, ServiceHealth, Summary } from '../types'
+import type { Alert, AlertBulkResult, AlertSummary, AlertWorkload, Metric, MetricInput, ServiceHealth, Summary } from '../types'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init)
@@ -23,6 +23,9 @@ export const api = {
   alertWorkloads: () => request<AlertWorkload[]>('/api/v1/alerts/workloads'),
   acknowledge: (id: number) => request<Alert>(`/api/v1/alerts/${id}/acknowledge`, { method: 'POST' }),
   resolve: (id: number) => request<Alert>(`/api/v1/alerts/${id}/resolve`, { method: 'POST' }),
+  bulkUpdate: (ids: number[], action: 'ACKNOWLEDGE' | 'RESOLVE') => request<AlertBulkResult>('/api/v1/alerts/bulk', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids, action }),
+  }),
   assign: (id: number, owner: string) => request<Alert>(`/api/v1/alerts/${id}/owner`, {
     method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ owner }),
   }),

@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -94,6 +95,25 @@ public class AlertService {
         Alert updated = repository.save(alert);
         webSocketHandler.broadcast("alert.assigned", updated);
         return updated;
+    }
+
+    @Transactional
+    public AlertBulkResult bulk(List<Long> ids, AlertBulkAction action) {
+        List<Long> uniqueIds = ids == null ? List.of() : new LinkedHashSet<>(ids).stream().toList();
+        if (uniqueIds.isEmpty() || uniqueIds.size() > 100 || action == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "批量操作需要 1 到 100 个告警和有效动作");
+        }
+        List<Alert> alerts = uniqueIds.stream().map(this::find).toList();
+        for (Alert alert : alerts) {
+            if (action == AlertBulkAction.ACKNOWLEDGE && alert.getStatus() == AlertStatus.OPEN) {
+                alert.acknowledge();
+            } else if (action == AlertBulkAction.RESOLVE) {
+                alert.resolve();
+            }
+        }
+        List<Alert> updated = repository.saveAll(alerts);
+        webSocketHandler.broadcast("alert.batch-updated", Map.of("action", action, "count", updated.size()));
+        return new AlertBulkResult(action, updated.size(), updated);
     }
 
     private Alert find(long id) {

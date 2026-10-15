@@ -38,6 +38,12 @@ export interface AlertWorkload {
   warning: number
 }
 
+export interface AlertBulkResult {
+  action: 'ACKNOWLEDGE' | 'RESOLVE'
+  count: number
+  items: Alert[]
+}
+
 export interface Summary {
   windowStart: string
   windowEnd: string

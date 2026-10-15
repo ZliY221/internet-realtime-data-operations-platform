@@ -115,4 +115,30 @@ class ApiWorkflowIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
     }
+
+    @Test
+    void alertQueueSupportsAtomicBulkResolution() throws Exception {
+        mockMvc.perform(post("/api/v1/metrics")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"serviceName":"gateway","requestCount":1000,"errorCount":90,
+                                 "p95LatencyMs":950,"collectedAt":"2026-10-15T01:00:00Z"}
+                                """))
+                .andExpect(status().isCreated());
+        String alerts = mockMvc.perform(get("/api/v1/alerts").param("status", "OPEN"))
+                .andReturn().getResponse().getContentAsString();
+        Number first = JsonPath.read(alerts, "$[0].id");
+        Number second = JsonPath.read(alerts, "$[1].id");
+
+        mockMvc.perform(post("/api/v1/alerts/bulk")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"ids\":[" + first + "," + second + "],\"action\":\"RESOLVE\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.count").value(2))
+                .andExpect(jsonPath("$.items[0].status").value("RESOLVED"));
+
+        mockMvc.perform(get("/api/v1/alerts/summary"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resolved").value(2));
+    }
 }

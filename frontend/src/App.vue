@@ -118,9 +118,7 @@ async function bulkUpdate(action: 'acknowledge' | 'resolve') {
   if (!targets.length) return
   bulkUpdating.value = true
   try {
-    await Promise.all(targets.map(alert => action === 'acknowledge' && alert.status === 'OPEN'
-      ? api.acknowledge(alert.id)
-      : action === 'resolve' ? api.resolve(alert.id) : Promise.resolve(alert)))
+    await api.bulkUpdate(targets.map(alert => alert.id), action === 'acknowledge' ? 'ACKNOWLEDGE' : 'RESOLVE')
     selectedAlerts.value = new Set()
     await loadData()
   } catch (error) {

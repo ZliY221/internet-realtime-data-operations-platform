@@ -5,7 +5,7 @@
 Spring Boot 与 Vue 构建的全栈实时数据应用，统一完成流量接入、服务健康分析和告警协同处置。
 
 [![CI](https://github.com/ZliY221/internet-realtime-data-operations-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/ZliY221/internet-realtime-data-operations-platform/actions/workflows/ci.yml)
-![Version](https://img.shields.io/badge/version-v0.7.0-32d6c4)
+![Version](https://img.shields.io/badge/version-v0.8.0-32d6c4)
 ![Java](https://img.shields.io/badge/Java-21-ef4b4b)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.1-6db33f)
 ![Vue](https://img.shields.io/badge/Vue-3-42b883)
@@ -84,7 +84,7 @@ flowchart LR
 - 按严重级别筛选告警并在表格内分派处置团队。
 - 接收 WebSocket 事件后自动刷新页面数据。
 - 用户可在看板提交流量样本，后端完成持久化和告警判定后实时同步到所有在线页面。
-- 告警队列支持多选、批量确认和批量解决，操作结果继续通过实时通道同步。
+- 告警队列支持多选、后端事务化批量确认和批量解决，操作结果继续通过实时通道同步。
 
 ### 数据与部署
 
@@ -132,7 +132,7 @@ compose.yaml   PostgreSQL、后端与前端编排
 
 ## 版本与维护
 
-当前版本为 `v0.7.0`。每次发布同步维护[用户使用指南](docs/user-guide.md)、[版本记录](CHANGELOG.md)和[版本摘要](VERSION_LOG.md)。
+当前版本为 `v0.8.0`。每次发布同步维护[用户使用指南](docs/user-guide.md)、[版本记录](CHANGELOG.md)和[版本摘要](VERSION_LOG.md)。
 
 ## License
 

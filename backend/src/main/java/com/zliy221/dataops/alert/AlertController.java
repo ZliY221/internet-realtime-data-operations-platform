@@ -25,6 +25,11 @@ public class AlertController {
     @GetMapping("/workloads")
     public List<AlertWorkload> workloads() { return service.workloads(); }
 
+    @PostMapping("/bulk")
+    public AlertBulkResult bulk(@RequestBody AlertBulkRequest request) {
+        return service.bulk(request.ids(), request.action());
+    }
+
     @PostMapping("/{id}/acknowledge")
     public Alert acknowledge(@PathVariable long id) { return service.acknowledge(id); }
 
