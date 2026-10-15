@@ -22,8 +22,11 @@ public class MetricController {
     }
 
     @GetMapping("/recent")
-    public List<MetricResponse> recent(@RequestParam(defaultValue = "60") int limit) {
-        return metricService.recent(limit);
+    public List<MetricResponse> recent(
+            @RequestParam(defaultValue = "60") int limit,
+            @RequestParam(required = false) String serviceName
+    ) {
+        return metricService.recent(limit, serviceName);
     }
 }
 

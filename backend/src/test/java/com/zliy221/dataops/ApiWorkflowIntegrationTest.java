@@ -184,5 +184,11 @@ class ApiWorkflowIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].serviceName").value("checkout"));
+        mockMvc.perform(get("/api/v1/metrics/recent")
+                        .param("limit", "80")
+                        .param("serviceName", "checkout"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].serviceName").value("checkout"));
     }
 }

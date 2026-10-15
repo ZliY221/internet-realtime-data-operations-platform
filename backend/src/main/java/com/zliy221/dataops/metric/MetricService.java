@@ -45,8 +45,21 @@ public class MetricService {
 
     @Transactional(readOnly = true)
     public List<MetricResponse> recent(int limit) {
+        return recent(limit, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<MetricResponse> recent(int limit, String serviceName) {
         int safeLimit = Math.max(1, Math.min(limit, 500));
-        return metricRepository.findAllByOrderByCollectedAtDesc(PageRequest.of(0, safeLimit))
+        String normalizedService = serviceName == null || serviceName.isBlank() ? null : serviceName.trim();
+        if (normalizedService != null && normalizedService.length() > 80) {
+            throw new IllegalArgumentException("serviceName 不能超过 80 个字符");
+        }
+        List<TrafficMetric> metrics = normalizedService == null
+                ? metricRepository.findAllByOrderByCollectedAtDesc(PageRequest.of(0, safeLimit))
+                : metricRepository.findByServiceNameOrderByCollectedAtDesc(
+                        normalizedService, PageRequest.of(0, safeLimit));
+        return metrics
                 .stream().map(MetricResponse::from).toList();
     }
 

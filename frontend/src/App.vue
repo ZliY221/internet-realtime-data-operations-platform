@@ -32,11 +32,12 @@ const requestLabel = computed(() => new Intl.NumberFormat('zh-CN', { notation: '
 const updatedLabel = computed(() => lastUpdated.value
   ? lastUpdated.value.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
   : '--:--:--')
+const trendScopeLabel = computed(() => serviceFilter.value ? `${serviceFilter.value} · 最近 80 个采样点` : '全部服务 · 最近 60 分钟')
 
 async function loadData() {
   try {
     const [summaryData, metricData, serviceData, alertSummaryData, workloadData, openAlerts, acknowledgedAlerts] = await Promise.all([
-      api.summary(), api.recentMetrics(), api.serviceHealth(), api.alertSummary(), api.alertWorkloads(), api.alerts('OPEN', severityFilter.value, ownerFilter.value, serviceFilter.value), api.alerts('ACKNOWLEDGED', severityFilter.value, ownerFilter.value, serviceFilter.value),
+      api.summary(), api.recentMetrics(serviceFilter.value), api.serviceHealth(), api.alertSummary(), api.alertWorkloads(), api.alerts('OPEN', severityFilter.value, ownerFilter.value, serviceFilter.value), api.alerts('ACKNOWLEDGED', severityFilter.value, ownerFilter.value, serviceFilter.value),
     ])
     summary.value = summaryData
     metrics.value = metricData
@@ -114,6 +115,12 @@ function toggleAll(checked: boolean) {
   selectedAlerts.value = checked ? new Set(alerts.value.map(alert => alert.id)) : new Set()
 }
 
+async function focusService(serviceName: string) {
+  serviceFilter.value = serviceName
+  await loadData()
+  document.querySelector('#traffic')?.scrollIntoView({ behavior: 'smooth' })
+}
+
 async function bulkUpdate(action: 'acknowledge' | 'resolve') {
   const targets = alerts.value.filter(alert => selectedAlerts.value.has(alert.id))
   if (!targets.length) return
@@ -179,7 +186,7 @@ onBeforeUnmount(() => { socket?.close(); if (reconnectTimer) window.clearTimeout
 
       <section class="content-grid" id="traffic">
         <article class="panel trend-panel">
-          <div class="panel-heading"><div><p class="eyebrow">TRAFFIC TREND</p><h2>请求量与响应延迟</h2></div><span class="period">最近 60 分钟</span></div>
+          <div class="panel-heading"><div><p class="eyebrow">TRAFFIC TREND</p><h2>请求量与响应延迟</h2></div><span class="period">{{ trendScopeLabel }}</span></div>
           <TrendChart :metrics="metrics" />
         </article>
 
@@ -190,7 +197,7 @@ onBeforeUnmount(() => { socket?.close(); if (reconnectTimer) window.clearTimeout
             <div v-for="service in services" :key="service.serviceName" class="service-row">
               <div><strong>{{ service.serviceName }}</strong><span>{{ time(service.latestCollectedAt) }}</span></div>
               <div class="service-stat"><span>错误率</span><b :class="{ danger: service.status === 'DEGRADED' }">{{ percent(service.errorRate) }}</b></div>
-              <div class="service-stat"><span>平均 P95</span><b>{{ service.averageP95LatencyMs.toFixed(0) }}ms</b></div>
+              <div class="service-stat"><span>平均 P95</span><b>{{ service.averageP95LatencyMs.toFixed(0) }}ms</b></div><button class="service-focus" @click="focusService(service.serviceName)">查看趋势</button>
             </div>
           </div>
         </article>
