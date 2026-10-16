@@ -191,15 +191,17 @@ public class AlertService {
             if (changed) changedCount++;
         }
         List<Alert> updated = changedCount > 0 ? repository.saveAll(alerts) : alerts;
+        List<String> services = alerts.stream().map(Alert::getServiceName).distinct().sorted().toList();
         if (changedCount > 0) {
             webSocketHandler.broadcast("alert.batch-dispatched", Map.of(
                     "owner", normalizedOwner, "action", action,
                     "count", updated.size(), "changedCount", changedCount,
-                    "assignedCount", assignedCount, "statusChangedCount", statusChangedCount));
+                    "assignedCount", assignedCount, "statusChangedCount", statusChangedCount,
+                    "serviceCount", services.size()));
         }
         return new AlertDispatchResult(
                 normalizedOwner, action, updated.size(), changedCount, updated.size() - changedCount,
-                assignedCount, statusChangedCount, updated);
+                assignedCount, statusChangedCount, services.size(), services, updated);
     }
 
     @Transactional(readOnly = true)
@@ -219,8 +221,10 @@ public class AlertService {
                 || action == AlertBulkAction.ACKNOWLEDGE && alert.getStatus() == AlertStatus.OPEN).count();
         int criticalCount = (int) alerts.stream().filter(alert -> alert.getSeverity() == AlertSeverity.CRITICAL).count();
         int warningCount = alerts.size() - criticalCount;
+        List<String> services = alerts.stream().map(Alert::getServiceName).distinct().sorted().toList();
         return new AlertDispatchPreview(alerts.size(), assignedCount, statusChangedCount,
-                criticalCount, warningCount, action == AlertBulkAction.RESOLVE || criticalCount > 0);
+                criticalCount, warningCount, services.size(), services,
+                action == AlertBulkAction.RESOLVE || criticalCount > 0);
     }
 
     private Alert find(long id) {

@@ -58,6 +58,8 @@ export interface AlertDispatchResult {
   unchangedCount: number
   assignedCount: number
   statusChangedCount: number
+  serviceCount: number
+  services: string[]
   items: Alert[]
 }
 
@@ -67,6 +69,8 @@ export interface AlertDispatchPreview {
   statusChangedCount: number
   criticalCount: number
   warningCount: number
+  serviceCount: number
+  services: string[]
   requiresConfirmation: boolean
 }
 

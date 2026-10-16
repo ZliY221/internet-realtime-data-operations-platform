@@ -203,6 +203,8 @@ class ApiWorkflowIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.count").value(1))
                 .andExpect(jsonPath("$.criticalCount").value(1))
+                .andExpect(jsonPath("$.serviceCount").value(1))
+                .andExpect(jsonPath("$.services[0]").value("catalog"))
                 .andExpect(jsonPath("$.requiresConfirmation").value(true));
         mockMvc.perform(post("/api/v1/alerts/dispatch")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -212,6 +214,8 @@ class ApiWorkflowIntegrationTest {
                 .andExpect(jsonPath("$.statusChangedCount").value(1))
                 .andExpect(jsonPath("$.changedCount").value(1))
                 .andExpect(jsonPath("$.unchangedCount").value(0))
+                .andExpect(jsonPath("$.serviceCount").value(1))
+                .andExpect(jsonPath("$.services[0]").value("catalog"))
                 .andExpect(jsonPath("$.items[0].owner").value("platform-oncall"))
                 .andExpect(jsonPath("$.items[0].status").value("ACKNOWLEDGED"));
         mockMvc.perform(post("/api/v1/alerts/dispatch")
