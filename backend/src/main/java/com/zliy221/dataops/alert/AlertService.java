@@ -192,6 +192,27 @@ public class AlertService {
                 normalizedOwner, action, updated.size(), assignedCount, statusChangedCount, updated);
     }
 
+    @Transactional(readOnly = true)
+    public AlertDispatchPreview previewDispatch(List<Long> ids, String owner, AlertBulkAction action) {
+        List<Long> uniqueIds = ids == null ? List.of() : new LinkedHashSet<>(ids).stream().toList();
+        String normalizedOwner = owner == null ? "" : owner.trim();
+        if (uniqueIds.isEmpty() || uniqueIds.size() > 100 || action == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "统一处置预览需要 1 到 100 个告警和有效动作");
+        }
+        if (normalizedOwner.isEmpty() || normalizedOwner.length() > 80) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "负责人名称长度应为 1 到 80 个字符");
+        }
+        List<Alert> alerts = uniqueIds.stream().map(this::find).toList();
+        int assignedCount = (int) alerts.stream().filter(alert -> !normalizedOwner.equals(alert.getOwner())).count();
+        int statusChangedCount = (int) alerts.stream().filter(alert ->
+                action == AlertBulkAction.RESOLVE && alert.getStatus() != AlertStatus.RESOLVED
+                || action == AlertBulkAction.ACKNOWLEDGE && alert.getStatus() == AlertStatus.OPEN).count();
+        int criticalCount = (int) alerts.stream().filter(alert -> alert.getSeverity() == AlertSeverity.CRITICAL).count();
+        int warningCount = alerts.size() - criticalCount;
+        return new AlertDispatchPreview(alerts.size(), assignedCount, statusChangedCount,
+                criticalCount, warningCount, action == AlertBulkAction.RESOLVE || criticalCount > 0);
+    }
+
     private Alert find(long id) {
         return repository.findById(id).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "告警不存在"));

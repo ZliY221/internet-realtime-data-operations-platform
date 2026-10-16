@@ -41,6 +41,11 @@ public class AlertController {
         return service.dispatch(request.ids(), request.owner(), request.action());
     }
 
+    @PostMapping("/dispatch/preview")
+    public AlertDispatchPreview previewDispatch(@RequestBody AlertDispatchRequest request) {
+        return service.previewDispatch(request.ids(), request.owner(), request.action());
+    }
+
     @PostMapping("/{id}/acknowledge")
     public Alert acknowledge(@PathVariable long id) { return service.acknowledge(id); }
 

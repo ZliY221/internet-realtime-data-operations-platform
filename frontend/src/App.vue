@@ -177,6 +177,10 @@ async function dispatchSelected() {
   if (!ids.length || !bulkOwner.value) return
   bulkUpdating.value = true
   try {
+    const preview = await api.previewDispatch(ids, bulkOwner.value, 'ACKNOWLEDGE')
+    if (preview.requiresConfirmation && !window.confirm(
+      `将处置 ${preview.count} 条告警，其中严重 ${preview.criticalCount} 条；分派 ${preview.assignedCount} 条，状态推进 ${preview.statusChangedCount} 条。确认继续吗？`
+    )) return
     await api.dispatch(ids, bulkOwner.value, 'ACKNOWLEDGE')
     selectedAlerts.value = new Set()
     await loadData()

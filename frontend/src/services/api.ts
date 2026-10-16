@@ -1,4 +1,4 @@
-import type { Alert, AlertBulkOwnerResult, AlertBulkResult, AlertDispatchResult, AlertSummary, AlertWorkload, Metric, MetricInput, ServiceHealth, Summary } from '../types'
+import type { Alert, AlertBulkOwnerResult, AlertBulkResult, AlertDispatchPreview, AlertDispatchResult, AlertSummary, AlertWorkload, Metric, MetricInput, ServiceHealth, Summary } from '../types'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init)
@@ -39,6 +39,9 @@ export const api = {
     method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids, owner }),
   }),
   dispatch: (ids: number[], owner: string, action: 'ACKNOWLEDGE' | 'RESOLVE') => request<AlertDispatchResult>('/api/v1/alerts/dispatch', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids, owner, action }),
+  }),
+  previewDispatch: (ids: number[], owner: string, action: 'ACKNOWLEDGE' | 'RESOLVE') => request<AlertDispatchPreview>('/api/v1/alerts/dispatch/preview', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids, owner, action }),
   }),
   assign: (id: number, owner: string) => request<Alert>(`/api/v1/alerts/${id}/owner`, {

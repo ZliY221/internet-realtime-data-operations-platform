@@ -59,6 +59,15 @@ export interface AlertDispatchResult {
   items: Alert[]
 }
 
+export interface AlertDispatchPreview {
+  count: number
+  assignedCount: number
+  statusChangedCount: number
+  criticalCount: number
+  warningCount: number
+  requiresConfirmation: boolean
+}
+
 export interface Summary {
   windowStart: string
   windowEnd: string

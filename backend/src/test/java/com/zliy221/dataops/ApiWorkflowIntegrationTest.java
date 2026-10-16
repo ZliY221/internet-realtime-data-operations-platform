@@ -197,6 +197,13 @@ class ApiWorkflowIntegrationTest {
         String alerts = mockMvc.perform(get("/api/v1/alerts").param("status", "OPEN"))
                 .andReturn().getResponse().getContentAsString();
         Number id = JsonPath.read(alerts, "$[0].id");
+        mockMvc.perform(post("/api/v1/alerts/dispatch/preview")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"ids\":[" + id + "],\"owner\":\"platform-oncall\",\"action\":\"ACKNOWLEDGE\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.count").value(1))
+                .andExpect(jsonPath("$.criticalCount").value(1))
+                .andExpect(jsonPath("$.requiresConfirmation").value(true));
         mockMvc.perform(post("/api/v1/alerts/dispatch")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"ids\":[" + id + "],\"owner\":\"platform-oncall\",\"action\":\"ACKNOWLEDGE\"}"))
