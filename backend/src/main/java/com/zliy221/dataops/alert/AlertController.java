@@ -36,6 +36,11 @@ public class AlertController {
         return service.bulkAssign(request.ids(), request.owner());
     }
 
+    @PostMapping("/dispatch")
+    public AlertDispatchResult dispatch(@RequestBody AlertDispatchRequest request) {
+        return service.dispatch(request.ids(), request.owner(), request.action());
+    }
+
     @PostMapping("/{id}/acknowledge")
     public Alert acknowledge(@PathVariable long id) { return service.acknowledge(id); }
 

@@ -50,6 +50,15 @@ export interface AlertBulkOwnerResult {
   items: Alert[]
 }
 
+export interface AlertDispatchResult {
+  owner: string
+  action: 'ACKNOWLEDGE' | 'RESOLVE'
+  count: number
+  assignedCount: number
+  statusChangedCount: number
+  items: Alert[]
+}
+
 export interface Summary {
   windowStart: string
   windowEnd: string

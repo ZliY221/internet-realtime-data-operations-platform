@@ -189,6 +189,25 @@ class ApiWorkflowIntegrationTest {
     }
 
     @Test
+    void unifiedDispatchAssignsAndAcknowledgesInOneRequest() throws Exception {
+        mockMvc.perform(post("/api/v1/metrics").contentType(MediaType.APPLICATION_JSON).content("""
+                {"serviceName":"catalog","requestCount":1000,"errorCount":90,
+                 "p95LatencyMs":950,"collectedAt":"2026-10-15T02:45:00Z"}
+                """)).andExpect(status().isCreated());
+        String alerts = mockMvc.perform(get("/api/v1/alerts").param("status", "OPEN"))
+                .andReturn().getResponse().getContentAsString();
+        Number id = JsonPath.read(alerts, "$[0].id");
+        mockMvc.perform(post("/api/v1/alerts/dispatch")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"ids\":[" + id + "],\"owner\":\"platform-oncall\",\"action\":\"ACKNOWLEDGE\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.assignedCount").value(1))
+                .andExpect(jsonPath("$.statusChangedCount").value(1))
+                .andExpect(jsonPath("$.items[0].owner").value("platform-oncall"))
+                .andExpect(jsonPath("$.items[0].status").value("ACKNOWLEDGED"));
+    }
+
+    @Test
     void recentMetricsRespectTheRequestedObservationWindow() throws Exception {
         String stale = Instant.now().minusSeconds(7200).toString();
         String current = Instant.now().minusSeconds(30).toString();
