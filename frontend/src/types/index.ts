@@ -54,6 +54,8 @@ export interface AlertDispatchResult {
   owner: string
   action: 'ACKNOWLEDGE' | 'RESOLVE'
   count: number
+  changedCount: number
+  unchangedCount: number
   assignedCount: number
   statusChangedCount: number
   items: Alert[]

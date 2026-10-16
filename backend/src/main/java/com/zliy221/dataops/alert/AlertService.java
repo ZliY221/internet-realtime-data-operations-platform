@@ -170,10 +170,13 @@ public class AlertService {
         List<Alert> alerts = uniqueIds.stream().map(this::find).toList();
         int assignedCount = 0;
         int statusChangedCount = 0;
+        int changedCount = 0;
         for (Alert alert : alerts) {
+            boolean changed = false;
             if (!normalizedOwner.equals(alert.getOwner())) {
                 alert.assign(normalizedOwner);
                 assignedCount++;
+                changed = true;
             }
             AlertStatus before = alert.getStatus();
             if (action == AlertBulkAction.ACKNOWLEDGE && before == AlertStatus.OPEN) {
@@ -181,15 +184,22 @@ public class AlertService {
             } else if (action == AlertBulkAction.RESOLVE && before != AlertStatus.RESOLVED) {
                 alert.resolve();
             }
-            if (alert.getStatus() != before) statusChangedCount++;
+            if (alert.getStatus() != before) {
+                statusChangedCount++;
+                changed = true;
+            }
+            if (changed) changedCount++;
         }
-        List<Alert> updated = repository.saveAll(alerts);
-        webSocketHandler.broadcast("alert.batch-dispatched", Map.of(
-                "owner", normalizedOwner, "action", action,
-                "count", updated.size(), "assignedCount", assignedCount,
-                "statusChangedCount", statusChangedCount));
+        List<Alert> updated = changedCount > 0 ? repository.saveAll(alerts) : alerts;
+        if (changedCount > 0) {
+            webSocketHandler.broadcast("alert.batch-dispatched", Map.of(
+                    "owner", normalizedOwner, "action", action,
+                    "count", updated.size(), "changedCount", changedCount,
+                    "assignedCount", assignedCount, "statusChangedCount", statusChangedCount));
+        }
         return new AlertDispatchResult(
-                normalizedOwner, action, updated.size(), assignedCount, statusChangedCount, updated);
+                normalizedOwner, action, updated.size(), changedCount, updated.size() - changedCount,
+                assignedCount, statusChangedCount, updated);
     }
 
     @Transactional(readOnly = true)

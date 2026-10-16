@@ -210,8 +210,16 @@ class ApiWorkflowIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.assignedCount").value(1))
                 .andExpect(jsonPath("$.statusChangedCount").value(1))
+                .andExpect(jsonPath("$.changedCount").value(1))
+                .andExpect(jsonPath("$.unchangedCount").value(0))
                 .andExpect(jsonPath("$.items[0].owner").value("platform-oncall"))
                 .andExpect(jsonPath("$.items[0].status").value("ACKNOWLEDGED"));
+        mockMvc.perform(post("/api/v1/alerts/dispatch")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"ids\":[" + id + "],\"owner\":\"platform-oncall\",\"action\":\"ACKNOWLEDGE\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.changedCount").value(0))
+                .andExpect(jsonPath("$.unchangedCount").value(1));
     }
 
     @Test
