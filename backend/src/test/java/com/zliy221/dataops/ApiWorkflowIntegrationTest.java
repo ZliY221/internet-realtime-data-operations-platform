@@ -170,6 +170,25 @@ class ApiWorkflowIntegrationTest {
     }
 
     @Test
+    void alertQueueSupportsAtomicBulkAssignment() throws Exception {
+        mockMvc.perform(post("/api/v1/metrics").contentType(MediaType.APPLICATION_JSON).content("""
+                {"serviceName":"search","requestCount":1000,"errorCount":90,
+                 "p95LatencyMs":950,"collectedAt":"2026-10-15T02:30:00Z"}
+                """)).andExpect(status().isCreated());
+        String alerts = mockMvc.perform(get("/api/v1/alerts").param("status", "OPEN"))
+                .andReturn().getResponse().getContentAsString();
+        Number first = JsonPath.read(alerts, "$[0].id");
+        Number second = JsonPath.read(alerts, "$[1].id");
+        mockMvc.perform(patch("/api/v1/alerts/bulk-owner")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"ids\":[" + first + "," + second + "],\"owner\":\"data-oncall\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.count").value(2))
+                .andExpect(jsonPath("$.owner").value("data-oncall"))
+                .andExpect(jsonPath("$.items[0].owner").value("data-oncall"));
+    }
+
+    @Test
     void recentMetricsRespectTheRequestedObservationWindow() throws Exception {
         String stale = Instant.now().minusSeconds(7200).toString();
         String current = Instant.now().minusSeconds(30).toString();
@@ -195,12 +214,13 @@ class ApiWorkflowIntegrationTest {
 
     @Test
     void alertQueueCanBeFilteredByService() throws Exception {
+        String observedAt = Instant.now().minusSeconds(60).toString();
         for (String service : List.of("gateway", "checkout")) {
             mockMvc.perform(post("/api/v1/metrics")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{\"serviceName\":\"" + service
                                     + "\",\"requestCount\":1000,\"errorCount\":90,"
-                                    + "\"p95LatencyMs\":950,\"collectedAt\":\"2026-10-15T03:00:00Z\"}"))
+                                    + "\"p95LatencyMs\":950,\"collectedAt\":\"" + observedAt + "\"}"))
                     .andExpect(status().isCreated());
         }
         mockMvc.perform(get("/api/v1/alerts")

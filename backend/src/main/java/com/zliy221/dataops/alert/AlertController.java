@@ -31,6 +31,11 @@ public class AlertController {
         return service.bulk(request.ids(), request.action());
     }
 
+    @PatchMapping("/bulk-owner")
+    public AlertBulkOwnerResult bulkAssign(@RequestBody AlertBulkOwnerRequest request) {
+        return service.bulkAssign(request.ids(), request.owner());
+    }
+
     @PostMapping("/{id}/acknowledge")
     public Alert acknowledge(@PathVariable long id) { return service.acknowledge(id); }
 

@@ -1,4 +1,4 @@
-import type { Alert, AlertBulkResult, AlertSummary, AlertWorkload, Metric, MetricInput, ServiceHealth, Summary } from '../types'
+import type { Alert, AlertBulkOwnerResult, AlertBulkResult, AlertSummary, AlertWorkload, Metric, MetricInput, ServiceHealth, Summary } from '../types'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init)
@@ -34,6 +34,9 @@ export const api = {
   resolve: (id: number) => request<Alert>(`/api/v1/alerts/${id}/resolve`, { method: 'POST' }),
   bulkUpdate: (ids: number[], action: 'ACKNOWLEDGE' | 'RESOLVE') => request<AlertBulkResult>('/api/v1/alerts/bulk', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids, action }),
+  }),
+  bulkAssign: (ids: number[], owner: string) => request<AlertBulkOwnerResult>('/api/v1/alerts/bulk-owner', {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids, owner }),
   }),
   assign: (id: number, owner: string) => request<Alert>(`/api/v1/alerts/${id}/owner`, {
     method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ owner }),

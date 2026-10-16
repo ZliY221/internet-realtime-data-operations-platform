@@ -140,6 +140,23 @@ public class AlertService {
         return new AlertBulkResult(action, updated.size(), updated);
     }
 
+    @Transactional
+    public AlertBulkOwnerResult bulkAssign(List<Long> ids, String owner) {
+        List<Long> uniqueIds = ids == null ? List.of() : new LinkedHashSet<>(ids).stream().toList();
+        String normalizedOwner = owner == null ? "" : owner.trim();
+        if (uniqueIds.isEmpty() || uniqueIds.size() > 100) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "批量分派需要 1 到 100 个告警");
+        }
+        if (normalizedOwner.isEmpty() || normalizedOwner.length() > 80) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "负责人名称长度应为 1 到 80 个字符");
+        }
+        List<Alert> alerts = uniqueIds.stream().map(this::find).toList();
+        alerts.forEach(alert -> alert.assign(normalizedOwner));
+        List<Alert> updated = repository.saveAll(alerts);
+        webSocketHandler.broadcast("alert.batch-assigned", Map.of("owner", normalizedOwner, "count", updated.size()));
+        return new AlertBulkOwnerResult(normalizedOwner, updated.size(), updated);
+    }
+
     private Alert find(long id) {
         return repository.findById(id).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "告警不存在"));

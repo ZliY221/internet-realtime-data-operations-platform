@@ -44,6 +44,12 @@ export interface AlertBulkResult {
   items: Alert[]
 }
 
+export interface AlertBulkOwnerResult {
+  owner: string
+  count: number
+  items: Alert[]
+}
+
 export interface Summary {
   windowStart: string
   windowEnd: string
