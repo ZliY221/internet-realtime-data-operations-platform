@@ -28,6 +28,8 @@
 - `GET /api/v1/metrics/recent?limit=80&serviceName=checkout`：读取指定服务的最近指标，用于单服务趋势。
 - `POST /api/v1/alerts/{id}/acknowledge`：确认告警。
 - `POST /api/v1/alerts/{id}/resolve`：解决告警。
+- `POST /api/v1/alerts/dispatch/preview`：只读预览统一处置的告警、服务和严重级别影响范围。
+- `POST /api/v1/alerts/dispatch`：统一完成分派与状态推进，返回 `receiptId`、`executedAt`、服务范围及实际更新/跳过数量。
 
 ## 实时通道
 

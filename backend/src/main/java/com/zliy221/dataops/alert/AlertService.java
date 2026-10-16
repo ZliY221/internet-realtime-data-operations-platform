@@ -6,10 +6,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.UUID;
 
 @Service
 public class AlertService {
@@ -192,16 +194,20 @@ public class AlertService {
         }
         List<Alert> updated = changedCount > 0 ? repository.saveAll(alerts) : alerts;
         List<String> services = alerts.stream().map(Alert::getServiceName).distinct().sorted().toList();
+        String receiptId = "DSP-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        Instant executedAt = Instant.now();
         if (changedCount > 0) {
             webSocketHandler.broadcast("alert.batch-dispatched", Map.of(
                     "owner", normalizedOwner, "action", action,
                     "count", updated.size(), "changedCount", changedCount,
                     "assignedCount", assignedCount, "statusChangedCount", statusChangedCount,
-                    "serviceCount", services.size()));
+                    "serviceCount", services.size(), "receiptId", receiptId,
+                    "executedAt", executedAt.toString()));
         }
         return new AlertDispatchResult(
                 normalizedOwner, action, updated.size(), changedCount, updated.size() - changedCount,
-                assignedCount, statusChangedCount, services.size(), services, updated);
+                assignedCount, statusChangedCount, services.size(), services,
+                receiptId, executedAt, updated);
     }
 
     @Transactional(readOnly = true)

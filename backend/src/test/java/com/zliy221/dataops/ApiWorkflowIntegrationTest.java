@@ -216,6 +216,8 @@ class ApiWorkflowIntegrationTest {
                 .andExpect(jsonPath("$.unchangedCount").value(0))
                 .andExpect(jsonPath("$.serviceCount").value(1))
                 .andExpect(jsonPath("$.services[0]").value("catalog"))
+                .andExpect(jsonPath("$.receiptId").value(org.hamcrest.Matchers.matchesPattern("DSP-[0-9A-F]{8}")))
+                .andExpect(jsonPath("$.executedAt").isNotEmpty())
                 .andExpect(jsonPath("$.items[0].owner").value("platform-oncall"))
                 .andExpect(jsonPath("$.items[0].status").value("ACKNOWLEDGED"));
         mockMvc.perform(post("/api/v1/alerts/dispatch")
@@ -223,7 +225,8 @@ class ApiWorkflowIntegrationTest {
                         .content("{\"ids\":[" + id + "],\"owner\":\"platform-oncall\",\"action\":\"ACKNOWLEDGE\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.changedCount").value(0))
-                .andExpect(jsonPath("$.unchangedCount").value(1));
+                .andExpect(jsonPath("$.unchangedCount").value(1))
+                .andExpect(jsonPath("$.receiptId").value(org.hamcrest.Matchers.matchesPattern("DSP-[0-9A-F]{8}")));
     }
 
     @Test
