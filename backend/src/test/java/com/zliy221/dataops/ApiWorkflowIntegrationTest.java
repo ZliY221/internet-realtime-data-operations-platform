@@ -3,6 +3,7 @@ package com.zliy221.dataops;
 import com.jayway.jsonpath.JsonPath;
 import com.zliy221.dataops.alert.AlertRepository;
 import com.zliy221.dataops.metric.TrafficMetricRepository;
+import com.zliy221.dataops.incident.IncidentRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,10 +33,51 @@ class ApiWorkflowIntegrationTest {
     @Autowired
     private TrafficMetricRepository metricRepository;
 
+    @Autowired
+    private IncidentRepository incidentRepository;
+
     @BeforeEach
     void clearData() {
         alertRepository.deleteAll();
+        incidentRepository.deleteAll();
         metricRepository.deleteAll();
+    }
+
+    @Test
+    void alertsAreGroupedIntoAnAssignableIncident() throws Exception {
+        mockMvc.perform(post("/api/v1/metrics").contentType(MediaType.APPLICATION_JSON).content("""
+                {"serviceName":"payment","requestCount":1000,"errorCount":90,
+                 "p95LatencyMs":950,"collectedAt":"2026-10-18T08:00:00Z"}
+                """)).andExpect(status().isCreated());
+
+        String incidents = mockMvc.perform(get("/api/v1/incidents").param("status", "OPEN"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].serviceName").value("payment"))
+                .andExpect(jsonPath("$[0].severity").value("CRITICAL"))
+                .andExpect(jsonPath("$[0].alertCount").value(2))
+                .andReturn().getResponse().getContentAsString();
+        Number incidentId = JsonPath.read(incidents, "$[0].id");
+
+        mockMvc.perform(patch("/api/v1/incidents/{id}", incidentId.longValue())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"owner\":\"platform-oncall\",\"status\":\"INVESTIGATING\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.owner").value("platform-oncall"))
+                .andExpect(jsonPath("$.status").value("INVESTIGATING"));
+
+        mockMvc.perform(get("/api/v1/incidents/summary"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.open").value(0))
+                .andExpect(jsonPath("$.investigating").value(1))
+                .andExpect(jsonPath("$.activeCritical").value(1));
+
+        mockMvc.perform(patch("/api/v1/incidents/{id}", incidentId.longValue())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"RESOLVED\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("RESOLVED"))
+                .andExpect(jsonPath("$.resolvedAt").isNotEmpty());
     }
 
     @Test

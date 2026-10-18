@@ -17,8 +17,31 @@ export interface Alert {
   ruleCode: string
   message: string
   owner: string | null
+  incidentId: number | null
   createdAt: string
   updatedAt: string
+}
+
+export interface Incident {
+  id: number
+  serviceName: string
+  severity: 'WARNING' | 'CRITICAL'
+  status: 'OPEN' | 'INVESTIGATING' | 'RESOLVED'
+  title: string
+  owner: string | null
+  alertCount: number
+  firstAlertAt: string
+  lastAlertAt: string
+  createdAt: string
+  updatedAt: string
+  resolvedAt: string | null
+}
+
+export interface IncidentSummary {
+  open: number
+  investigating: number
+  resolved: number
+  activeCritical: number
 }
 
 export interface AlertSummary {

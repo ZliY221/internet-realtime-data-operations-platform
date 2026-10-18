@@ -36,3 +36,9 @@
 
 - `GET ws://localhost:8080/ws/metrics`：接收 `metric.created`、`alert.created`、`alert.updated` 事件。
 
+# 事故中心
+
+- `GET /api/v1/incidents?status=OPEN`：查询指定状态的事故。
+- `GET /api/v1/incidents/summary`：查询事故状态与严重度汇总。
+- `PATCH /api/v1/incidents/{id}`：分派负责人并推进到 `INVESTIGATING` 或 `RESOLVED`。
+

@@ -33,6 +33,9 @@ public class Alert {
     @Column(length = 80)
     private String owner;
 
+    @Column(name = "incident_id")
+    private Long incidentId;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -75,6 +78,12 @@ public class Alert {
         updatedAt = Instant.now();
     }
 
+    public void attachToIncident(Long incidentId) {
+        if (incidentId == null) throw new IllegalArgumentException("incidentId 不能为空");
+        this.incidentId = incidentId;
+        updatedAt = Instant.now();
+    }
+
     public Long getId() { return id; }
     public Long getMetricId() { return metricId; }
     public String getServiceName() { return serviceName; }
@@ -83,6 +92,7 @@ public class Alert {
     public String getRuleCode() { return ruleCode; }
     public String getMessage() { return message; }
     public String getOwner() { return owner; }
+    public Long getIncidentId() { return incidentId; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 }

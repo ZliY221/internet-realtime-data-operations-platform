@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import TrendChart from './components/TrendChart.vue'
 import { api } from './services/api'
-import type { Alert, AlertSummary, AlertWorkload, Metric, RealtimeEvent, ServiceHealth, Summary } from './types'
+import type { Alert, AlertSummary, AlertWorkload, Incident, IncidentSummary, Metric, RealtimeEvent, ServiceHealth, Summary } from './types'
 
 const emptySummary: Summary = {
   windowStart: '', windowEnd: '', totalRequests: 0, totalErrors: 0,
@@ -17,6 +17,8 @@ const ownerFilter = ref('')
 const serviceFilter = ref('')
 const timeWindowMinutes = ref(60)
 const alertWorkloads = ref<AlertWorkload[]>([])
+const incidents = ref<Incident[]>([])
+const incidentSummary = ref<IncidentSummary>({ open: 0, investigating: 0, resolved: 0, activeCritical: 0 })
 const services = ref<ServiceHealth[]>([])
 const loading = ref(true)
 const errorMessage = ref('')
@@ -41,14 +43,16 @@ const summaryScopeLabel = computed(() => serviceFilter.value ? `${serviceFilter.
 
 async function loadData() {
   try {
-    const [summaryData, metricData, serviceData, alertSummaryData, workloadData, openAlerts, acknowledgedAlerts] = await Promise.all([
-      api.summary(serviceFilter.value, timeWindowMinutes.value), api.recentMetrics(serviceFilter.value, timeWindowMinutes.value), api.serviceHealth(timeWindowMinutes.value), api.alertSummary(), api.alertWorkloads(), api.alerts('OPEN', severityFilter.value, ownerFilter.value, serviceFilter.value), api.alerts('ACKNOWLEDGED', severityFilter.value, ownerFilter.value, serviceFilter.value),
+    const [summaryData, metricData, serviceData, alertSummaryData, workloadData, incidentSummaryData, openIncidents, investigatingIncidents, openAlerts, acknowledgedAlerts] = await Promise.all([
+      api.summary(serviceFilter.value, timeWindowMinutes.value), api.recentMetrics(serviceFilter.value, timeWindowMinutes.value), api.serviceHealth(timeWindowMinutes.value), api.alertSummary(), api.alertWorkloads(), api.incidentSummary(), api.incidents('OPEN'), api.incidents('INVESTIGATING'), api.alerts('OPEN', severityFilter.value, ownerFilter.value, serviceFilter.value), api.alerts('ACKNOWLEDGED', severityFilter.value, ownerFilter.value, serviceFilter.value),
     ])
     summary.value = summaryData
     metrics.value = metricData
     services.value = serviceData
     alertSummary.value = alertSummaryData
     alertWorkloads.value = workloadData
+    incidentSummary.value = incidentSummaryData
+    incidents.value = [...openIncidents, ...investigatingIncidents].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
     alerts.value = [...openAlerts, ...acknowledgedAlerts]
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     selectedAlerts.value = new Set([...selectedAlerts.value].filter(id => alerts.value.some(alert => alert.id === id)))
@@ -58,6 +62,29 @@ async function loadData() {
     errorMessage.value = error instanceof Error ? error.message : '数据加载失败'
   } finally {
     loading.value = false
+  }
+}
+
+async function updateIncident(incident: Incident, status: 'INVESTIGATING' | 'RESOLVED') {
+  try {
+    await api.updateIncident(incident.id, incident.owner || 'platform-oncall', status)
+    operationMessage.value = status === 'RESOLVED'
+      ? `事故 #${incident.id} 已恢复，关联 ${incident.alertCount} 条告警。`
+      : `事故 #${incident.id} 已由 ${incident.owner || 'platform-oncall'} 接手。`
+    await loadData()
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '事故状态更新失败'
+  }
+}
+
+async function assignIncident(incident: Incident, event: Event) {
+  const owner = (event.target as HTMLSelectElement).value
+  if (!owner || owner === incident.owner) return
+  try {
+    await api.updateIncident(incident.id, owner, incident.status)
+    await loadData()
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '事故分派失败'
   }
 }
 
@@ -210,7 +237,8 @@ onBeforeUnmount(() => { socket?.close(); if (reconnectTimer) window.clearTimeout
       <nav aria-label="主导航">
         <a class="nav-item active" href="#overview"><span>01</span>运营总览</a>
         <a class="nav-item" href="#traffic"><span>02</span>流量监控</a>
-        <a class="nav-item" href="#alerts"><span>03</span>告警中心</a>
+        <a class="nav-item" href="#incidents"><span>03</span>事故中心</a>
+        <a class="nav-item" href="#alerts"><span>04</span>告警明细</a>
       </nav>
       <div class="sidebar-note">
         <span :class="['status-dot', { online: connected }]" />
@@ -268,6 +296,21 @@ onBeforeUnmount(() => { socket?.close(); if (reconnectTimer) window.clearTimeout
             </div>
           </div>
         </article>
+      </section>
+
+      <section class="panel incident-panel" id="incidents">
+        <div class="panel-heading"><div><p class="eyebrow">INCIDENT CENTER</p><h2>服务事故中心</h2></div><span class="count">待接手 {{ incidentSummary.open }} · 处理中 {{ incidentSummary.investigating }} · 严重 {{ incidentSummary.activeCritical }}</span></div>
+        <p class="incident-intro">同一服务的关联告警自动归并为一条事故，值班人员可先接手定位，再在恢复后关闭事故。</p>
+        <div v-if="incidents.length === 0" class="empty">当前没有进行中的服务事故</div>
+        <div v-else class="incident-grid">
+          <article v-for="incident in incidents" :key="incident.id" :class="['incident-card', incident.severity.toLowerCase()]">
+            <div class="incident-card-head"><span>INC-{{ String(incident.id).padStart(4, '0') }}</span><span :class="['severity', incident.severity.toLowerCase()]">{{ incident.severity === 'CRITICAL' ? '严重' : '警告' }}</span></div>
+            <h3>{{ incident.title }}</h3>
+            <p>{{ incident.alertCount }} 条关联告警 · 最近更新 {{ time(incident.lastAlertAt) }}</p>
+            <div class="incident-meta"><strong>{{ incident.status === 'OPEN' ? '待接手' : '处理中' }}</strong><select :value="incident.owner || ''" aria-label="事故负责人" @change="assignIncident(incident, $event)"><option value="" disabled>选择负责人</option><option value="platform-oncall">平台值班</option><option value="data-oncall">数据值班</option><option value="service-owner">服务负责人</option></select></div>
+            <div class="incident-actions"><button v-if="incident.status === 'OPEN'" class="primary" @click="updateIncident(incident, 'INVESTIGATING')">接手处理</button><button @click="updateIncident(incident, 'RESOLVED')">确认恢复</button></div>
+          </article>
+        </div>
       </section>
 
       <section class="panel alert-panel" id="alerts">

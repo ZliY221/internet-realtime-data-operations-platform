@@ -5,7 +5,7 @@
 Spring Boot 与 Vue 构建的全栈实时数据应用，统一完成流量接入、服务健康分析和告警协同处置。
 
 [![CI](https://github.com/ZliY221/internet-realtime-data-operations-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/ZliY221/internet-realtime-data-operations-platform/actions/workflows/ci.yml)
-![Version](https://img.shields.io/badge/version-v1.14.0-0ea5a8)
+![Version](https://img.shields.io/badge/version-v2.0.0-0ea5a8)
 ![Java](https://img.shields.io/badge/Java-21-ef4b4b)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.1-6db33f)
 ![Vue](https://img.shields.io/badge/Vue-3-42b883)
@@ -16,13 +16,14 @@ Spring Boot 与 Vue 构建的全栈实时数据应用，统一完成流量接入
 
 ## 项目简介
 
-平台接收互联网服务的分钟流量指标，聚合请求量、错误率和 P95 响应时间，按规则生成分级告警，并通过 WebSocket 将指标和告警变化实时推送到运营看板。告警支持筛选、负责人分派、确认和解决，形成面向服务运营的完整处置流程。
+平台接收互联网服务的分钟流量指标，聚合请求量、错误率和 P95 响应时间，按规则生成分级告警，并通过 WebSocket 将指标、事故和告警变化实时推送到运营看板。同一服务的关联告警会自动归并为事故，支持负责人分派、接手调查和恢复确认，形成面向服务运营的完整处置流程。
 
 | 关注点 | 项目实现 |
 | --- | --- |
 | 指标接入 | 服务请求量、错误量、错误率与 P95 延迟 |
 | 实时交互 | WebSocket 推送指标、告警和分派变化 |
 | 告警协同 | 分级规则、级别筛选、负责人分派、状态流转 |
+| 事故管理 | 同服务告警归并、事故分派、调查与恢复闭环 |
 | 数据展示 | 运营 KPI、趋势图、服务健康排行和处置队列 |
 | 工程运行 | H2 本地模式、PostgreSQL、Flyway、Docker Compose |
 
@@ -60,8 +61,9 @@ flowchart LR
     B --> C[指标存储]
     B --> D[告警规则]
     D --> E[告警生命周期]
+    E --> K[服务事故归并]
     C --> F[健康聚合]
-    E --> G[WebSocket]
+    K --> G[WebSocket]
     F --> G
     G --> H[Vue 运营看板]
     H --> I[筛选 分派 确认 解决]
@@ -76,6 +78,7 @@ flowchart LR
 - 使用 Spring Data JPA 管理指标和告警持久化。
 - 按错误率和响应延迟生成 WARNING、CRITICAL 告警。
 - 提供服务健康聚合、告警摘要和生命周期操作接口。
+- 将同一服务的活动告警归并为事故，持久化事故负责人、严重度、关联告警数和状态。
 
 ### 前端看板
 
@@ -100,6 +103,7 @@ flowchart LR
 - 将严重告警标记为 P0、其他变更标记为 P1，无变化标记为无需复核。
 - 根据处置动作和风险影响生成升级负责人、验证恢复或持续观察建议。
 - 为每次处置生成回执核对、负责人联系、建议执行和结果登记清单。
+- 事故中心把关联告警聚合为服务级工作项，支持值班人员接手、分派和恢复确认。
 
 ### 数据与部署
 
@@ -128,6 +132,7 @@ compose.yaml   PostgreSQL、后端与前端编排
 | 容器部署 | `docker compose up --build` |
 | 健康检查 | `GET /actuator/health` |
 | 告警查询 | `GET /api/v1/alerts` |
+| 事故查询 | `GET /api/v1/incidents` |
 
 ## 项目文档
 
@@ -147,7 +152,7 @@ compose.yaml   PostgreSQL、后端与前端编排
 
 ## 版本与维护
 
-当前版本为 `v1.14.0`。每次发布同步维护[用户使用指南](docs/user-guide.md)、[版本记录](CHANGELOG.md)和[版本摘要](VERSION_LOG.md)。
+当前版本为 `v2.0.0`。每次发布同步维护[用户使用指南](docs/user-guide.md)、[版本记录](CHANGELOG.md)和[版本摘要](VERSION_LOG.md)。
 
 ## License
 

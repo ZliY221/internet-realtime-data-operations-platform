@@ -215,6 +215,22 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .service-focus { min-height: 36px; padding: 6px 9px; color: #116f75; background: #eef9f8; border: 1px solid #a8d5d2; border-radius: 8px; }
 .empty { min-height: 130px; display: grid; place-items: center; color: #77889a; }
 
+.incident-panel { border-top: 4px solid var(--amber); }
+.incident-intro { margin: -5px 0 16px; color: var(--muted); font-size: 12px; }
+.incident-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
+.incident-card { padding: 17px; background: #f7fafb; border: 1px solid #d9e2e8; border-left: 4px solid var(--amber); border-radius: 11px; }
+.incident-card.critical { border-left-color: var(--red); background: #fff8f8; }
+.incident-card-head, .incident-meta, .incident-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.incident-card-head > span:first-child { color: #748496; font-size: 10px; font-weight: 800; letter-spacing: .08em; }
+.incident-card h3 { margin: 14px 0 7px; font-size: 16px; }
+.incident-card p { min-height: 34px; margin-bottom: 15px; color: var(--muted); font-size: 11px; line-height: 1.55; }
+.incident-meta { padding: 11px 0; border-top: 1px solid #e0e7ec; }
+.incident-meta strong { font-size: 12px; }
+.incident-meta select { min-height: 34px; padding: 5px 8px; color: #32465a; background: white; border: 1px solid #c8d3dc; border-radius: 8px; }
+.incident-actions { justify-content: flex-end; margin-top: 8px; }
+.incident-actions button { min-height: 35px; padding: 6px 10px; color: #43566a; background: white; border: 1px solid #bfcbd5; border-radius: 8px; }
+.incident-actions button.primary { color: white; background: var(--blue); border-color: var(--blue); }
+
 .alert-panel { border-top: 4px solid var(--red); }
 .alert-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .bulk-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
@@ -254,7 +270,7 @@ td strong { color: #1b2a3c; }
   .sidebar nav { display: flex; margin: 0 0 0 auto; }
   .nav-item { padding: 10px; font-size: 11px; }
   .nav-item span { display: none; }
-  .nav-item:nth-child(3) { display: none; }
+  .nav-item:nth-child(4) { display: none; }
   main { padding: 22px 14px 44px; }
   .topbar { align-items: flex-start; }
   .topbar-actions { align-items: flex-start; }

@@ -4,6 +4,8 @@ import com.zliy221.dataops.alert.Alert;
 import com.zliy221.dataops.alert.AlertPolicy;
 import com.zliy221.dataops.alert.AlertRepository;
 import com.zliy221.dataops.realtime.MetricWebSocketHandler;
+import com.zliy221.dataops.incident.Incident;
+import com.zliy221.dataops.incident.IncidentService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,13 +23,16 @@ public class MetricService {
     private final AlertRepository alertRepository;
     private final AlertPolicy alertPolicy;
     private final MetricWebSocketHandler webSocketHandler;
+    private final IncidentService incidentService;
 
     public MetricService(TrafficMetricRepository metricRepository, AlertRepository alertRepository,
-                         AlertPolicy alertPolicy, MetricWebSocketHandler webSocketHandler) {
+                         AlertPolicy alertPolicy, MetricWebSocketHandler webSocketHandler,
+                         IncidentService incidentService) {
         this.metricRepository = metricRepository;
         this.alertRepository = alertRepository;
         this.alertPolicy = alertPolicy;
         this.webSocketHandler = webSocketHandler;
+        this.incidentService = incidentService;
     }
 
     @Transactional
@@ -38,10 +43,12 @@ public class MetricService {
         TrafficMetric metric = metricRepository.save(new TrafficMetric(request.serviceName().trim(),
                 request.requestCount(), request.errorCount(), request.p95LatencyMs(), request.collectedAt()));
         List<Alert> alerts = alertPolicy.evaluate(metric).stream().map(alertRepository::save).toList();
+        List<Incident> incidents = incidentService.recordAlerts(alerts);
         MetricResponse response = MetricResponse.from(metric);
         afterCommit(() -> {
             webSocketHandler.broadcast("metric.created", response);
             alerts.forEach(alert -> webSocketHandler.broadcast("alert.created", alert));
+            incidents.forEach(incident -> webSocketHandler.broadcast("incident.updated", incident));
         });
         return response;
     }
