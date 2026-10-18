@@ -200,12 +200,15 @@ public class AlertService {
         int warningCount = alerts.size() - criticalCount;
         String receiptId = "DSP-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
         Instant executedAt = Instant.now();
+        String outcome = changedCount == 0 ? "NO_CHANGE"
+                : changedCount == updated.size() ? "COMPLETE" : "PARTIAL";
         if (changedCount > 0) {
             Map<String, Object> dispatchEvent = new TreeMap<>();
             dispatchEvent.put("owner", normalizedOwner);
             dispatchEvent.put("action", action);
             dispatchEvent.put("count", updated.size());
             dispatchEvent.put("changedCount", changedCount);
+            dispatchEvent.put("outcome", outcome);
             dispatchEvent.put("assignedCount", assignedCount);
             dispatchEvent.put("statusChangedCount", statusChangedCount);
             dispatchEvent.put("criticalCount", criticalCount);
@@ -218,7 +221,7 @@ public class AlertService {
         }
         return new AlertDispatchResult(
                 normalizedOwner, action, updated.size(), changedCount, updated.size() - changedCount,
-                assignedCount, statusChangedCount, criticalCount, warningCount, statusBeforeCounts,
+                outcome, assignedCount, statusChangedCount, criticalCount, warningCount, statusBeforeCounts,
                 services.size(), services,
                 receiptId, executedAt, updated);
     }

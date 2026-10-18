@@ -7,6 +7,7 @@ import java.util.Map;
 public record AlertDispatchResult(
         String owner, AlertBulkAction action, int count,
         int changedCount, int unchangedCount,
+        String outcome,
         int assignedCount, int statusChangedCount,
         int criticalCount, int warningCount,
         Map<String, Integer> statusBeforeCounts,

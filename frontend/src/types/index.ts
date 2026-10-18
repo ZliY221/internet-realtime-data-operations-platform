@@ -56,6 +56,7 @@ export interface AlertDispatchResult {
   count: number
   changedCount: number
   unchangedCount: number
+  outcome: 'COMPLETE' | 'PARTIAL' | 'NO_CHANGE'
   assignedCount: number
   statusChangedCount: number
   criticalCount: number

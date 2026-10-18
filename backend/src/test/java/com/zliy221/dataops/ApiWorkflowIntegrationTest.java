@@ -213,6 +213,7 @@ class ApiWorkflowIntegrationTest {
                 .andExpect(jsonPath("$.assignedCount").value(1))
                 .andExpect(jsonPath("$.statusChangedCount").value(1))
                 .andExpect(jsonPath("$.changedCount").value(1))
+                .andExpect(jsonPath("$.outcome").value("COMPLETE"))
                 .andExpect(jsonPath("$.unchangedCount").value(0))
                 .andExpect(jsonPath("$.criticalCount").value(1))
                 .andExpect(jsonPath("$.warningCount").value(0))
@@ -228,6 +229,7 @@ class ApiWorkflowIntegrationTest {
                         .content("{\"ids\":[" + id + "],\"owner\":\"platform-oncall\",\"action\":\"ACKNOWLEDGE\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.changedCount").value(0))
+                .andExpect(jsonPath("$.outcome").value("NO_CHANGE"))
                 .andExpect(jsonPath("$.unchangedCount").value(1))
                 .andExpect(jsonPath("$.receiptId").value(org.hamcrest.Matchers.matchesPattern("DSP-[0-9A-F]{8}")));
     }
