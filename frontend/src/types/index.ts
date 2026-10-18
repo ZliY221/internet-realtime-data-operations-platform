@@ -69,6 +69,8 @@ export interface AlertDispatchResult {
   reviewWindowHours: number | null
   nextAction: 'REVIEW_SELECTION' | 'VERIFY_SERVICE_RECOVERY' | 'ESCALATE_SERVICE_OWNER' | 'MONITOR_SERVICE'
   handoffChecklist: string[]
+  handoffStepCount: number
+  estimatedHandoffMinutes: number
   handoffSummary: string
   receiptId: string
   executedAt: string

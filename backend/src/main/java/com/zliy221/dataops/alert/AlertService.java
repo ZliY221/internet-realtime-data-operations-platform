@@ -211,6 +211,8 @@ public class AlertService {
         List<String> handoffChecklist = changedCount == 0
                 ? List.of("REVIEW_SELECTION")
                 : List.of("VERIFY_DISPATCH_RECEIPT", "CONTACT_ASSIGNED_OWNER", nextAction, "RECORD_REVIEW_RESULT");
+        int handoffStepCount = handoffChecklist.size();
+        int estimatedHandoffMinutes = handoffStepCount * 5;
         String handoffSummary = receiptId + " · " + outcome + " · " + services.size()
                 + " services · " + criticalCount + " critical · "
                 + (reviewWindowHours == null ? "no follow-up" : reviewWindowHours + "h review")
@@ -232,6 +234,8 @@ public class AlertService {
             dispatchEvent.put("reviewWindowHours", reviewWindowHours);
             dispatchEvent.put("nextAction", nextAction);
             dispatchEvent.put("handoffChecklist", handoffChecklist);
+            dispatchEvent.put("handoffStepCount", handoffStepCount);
+            dispatchEvent.put("estimatedHandoffMinutes", estimatedHandoffMinutes);
             dispatchEvent.put("handoffSummary", handoffSummary);
             dispatchEvent.put("serviceCount", services.size());
             dispatchEvent.put("receiptId", receiptId);
@@ -242,7 +246,7 @@ public class AlertService {
                 normalizedOwner, action, updated.size(), changedCount, updated.size() - changedCount,
                 outcome, assignedCount, statusChangedCount, criticalCount, warningCount, statusBeforeCounts,
                 services.size(), services, followUpRequired, reviewPriority, reviewWindowHours,
-                nextAction, handoffChecklist, handoffSummary,
+                nextAction, handoffChecklist, handoffStepCount, estimatedHandoffMinutes, handoffSummary,
                 receiptId, executedAt, updated);
     }
 
