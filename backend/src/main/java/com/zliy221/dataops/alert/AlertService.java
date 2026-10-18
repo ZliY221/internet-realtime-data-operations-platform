@@ -203,6 +203,7 @@ public class AlertService {
         String outcome = changedCount == 0 ? "NO_CHANGE"
                 : changedCount == updated.size() ? "COMPLETE" : "PARTIAL";
         boolean followUpRequired = changedCount > 0;
+        String reviewPriority = changedCount == 0 ? "NONE" : criticalCount > 0 ? "P0" : "P1";
         Integer reviewWindowHours = changedCount == 0 ? null : criticalCount > 0 ? 1 : 4;
         String handoffSummary = receiptId + " · " + outcome + " · " + services.size()
                 + " services · " + criticalCount + " critical · "
@@ -220,6 +221,7 @@ public class AlertService {
             dispatchEvent.put("warningCount", warningCount);
             dispatchEvent.put("statusBeforeCounts", statusBeforeCounts);
             dispatchEvent.put("followUpRequired", followUpRequired);
+            dispatchEvent.put("reviewPriority", reviewPriority);
             dispatchEvent.put("reviewWindowHours", reviewWindowHours);
             dispatchEvent.put("handoffSummary", handoffSummary);
             dispatchEvent.put("serviceCount", services.size());
@@ -230,7 +232,7 @@ public class AlertService {
         return new AlertDispatchResult(
                 normalizedOwner, action, updated.size(), changedCount, updated.size() - changedCount,
                 outcome, assignedCount, statusChangedCount, criticalCount, warningCount, statusBeforeCounts,
-                services.size(), services, followUpRequired, reviewWindowHours, handoffSummary,
+                services.size(), services, followUpRequired, reviewPriority, reviewWindowHours, handoffSummary,
                 receiptId, executedAt, updated);
     }
 

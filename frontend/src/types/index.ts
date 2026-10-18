@@ -65,6 +65,7 @@ export interface AlertDispatchResult {
   serviceCount: number
   services: string[]
   followUpRequired: boolean
+  reviewPriority: 'P0' | 'P1' | 'NONE'
   reviewWindowHours: number | null
   handoffSummary: string
   receiptId: string

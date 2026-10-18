@@ -184,7 +184,7 @@ async function dispatchSelected() {
     )) return
     const result = await api.dispatch(ids, bulkOwner.value, 'ACKNOWLEDGE')
     const before = Object.entries(result.statusBeforeCounts).map(([status, count]) => `${status} ${count}`).join(' / ')
-    operationMessage.value = `${result.handoffSummary} · 原状态 ${before} · 严重 ${result.criticalCount} 条 / 警告 ${result.warningCount} 条 · 实际更新 ${result.changedCount} 条，跳过 ${result.unchangedCount} 条`
+    operationMessage.value = `${result.handoffSummary} · 复核 ${result.reviewPriority} · 原状态 ${before} · 严重 ${result.criticalCount} 条 / 警告 ${result.warningCount} 条 · 实际更新 ${result.changedCount} 条，跳过 ${result.unchangedCount} 条`
     selectedAlerts.value = new Set()
     await loadData()
   } catch (error) {
