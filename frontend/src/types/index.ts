@@ -60,6 +60,7 @@ export interface AlertDispatchResult {
   statusChangedCount: number
   criticalCount: number
   warningCount: number
+  statusBeforeCounts: Record<string, number>
   serviceCount: number
   services: string[]
   receiptId: string

@@ -173,7 +173,9 @@ public class AlertService {
         int assignedCount = 0;
         int statusChangedCount = 0;
         int changedCount = 0;
+        Map<String, Integer> statusBeforeCounts = new TreeMap<>();
         for (Alert alert : alerts) {
+            statusBeforeCounts.merge(alert.getStatus().name(), 1, Integer::sum);
             boolean changed = false;
             if (!normalizedOwner.equals(alert.getOwner())) {
                 alert.assign(normalizedOwner);
@@ -199,17 +201,25 @@ public class AlertService {
         String receiptId = "DSP-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
         Instant executedAt = Instant.now();
         if (changedCount > 0) {
-            webSocketHandler.broadcast("alert.batch-dispatched", Map.of(
-                    "owner", normalizedOwner, "action", action,
-                    "count", updated.size(), "changedCount", changedCount,
-                    "assignedCount", assignedCount, "statusChangedCount", statusChangedCount,
-                    "criticalCount", criticalCount, "warningCount", warningCount,
-                    "serviceCount", services.size(), "receiptId", receiptId,
-                    "executedAt", executedAt.toString()));
+            Map<String, Object> dispatchEvent = new TreeMap<>();
+            dispatchEvent.put("owner", normalizedOwner);
+            dispatchEvent.put("action", action);
+            dispatchEvent.put("count", updated.size());
+            dispatchEvent.put("changedCount", changedCount);
+            dispatchEvent.put("assignedCount", assignedCount);
+            dispatchEvent.put("statusChangedCount", statusChangedCount);
+            dispatchEvent.put("criticalCount", criticalCount);
+            dispatchEvent.put("warningCount", warningCount);
+            dispatchEvent.put("statusBeforeCounts", statusBeforeCounts);
+            dispatchEvent.put("serviceCount", services.size());
+            dispatchEvent.put("receiptId", receiptId);
+            dispatchEvent.put("executedAt", executedAt.toString());
+            webSocketHandler.broadcast("alert.batch-dispatched", dispatchEvent);
         }
         return new AlertDispatchResult(
                 normalizedOwner, action, updated.size(), changedCount, updated.size() - changedCount,
-                assignedCount, statusChangedCount, criticalCount, warningCount, services.size(), services,
+                assignedCount, statusChangedCount, criticalCount, warningCount, statusBeforeCounts,
+                services.size(), services,
                 receiptId, executedAt, updated);
     }
 

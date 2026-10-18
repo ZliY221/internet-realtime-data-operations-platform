@@ -183,7 +183,8 @@ async function dispatchSelected() {
       `将处置 ${preview.count} 条告警，覆盖 ${preview.serviceCount} 个服务（${preview.services.join('、')}），其中严重 ${preview.criticalCount} 条；分派 ${preview.assignedCount} 条，状态推进 ${preview.statusChangedCount} 条。确认继续吗？`
     )) return
     const result = await api.dispatch(ids, bulkOwner.value, 'ACKNOWLEDGE')
-    operationMessage.value = `回执 ${result.receiptId} · 严重 ${result.criticalCount} 条 / 警告 ${result.warningCount} 条 · 覆盖 ${result.serviceCount} 个服务 · 实际更新 ${result.changedCount} 条，跳过 ${result.unchangedCount} 条`
+    const before = Object.entries(result.statusBeforeCounts).map(([status, count]) => `${status} ${count}`).join(' / ')
+    operationMessage.value = `回执 ${result.receiptId} · 原状态 ${before} · 严重 ${result.criticalCount} 条 / 警告 ${result.warningCount} 条 · 覆盖 ${result.serviceCount} 个服务 · 实际更新 ${result.changedCount} 条，跳过 ${result.unchangedCount} 条`
     selectedAlerts.value = new Set()
     await loadData()
   } catch (error) {
