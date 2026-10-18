@@ -202,9 +202,11 @@ onBeforeUnmount(() => { socket?.close(); if (reconnectTimer) window.clearTimeout
 </script>
 
 <template>
+  <a class="skip-link" href="#main-content">跳到主要内容</a>
   <div class="app-shell">
     <aside class="sidebar">
-      <div class="brand"><span class="brand-mark">D</span><div><strong>DataOps</strong><small>数据运营平台</small></div></div>
+      <div class="brand"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><div><strong>Signal Desk</strong><small>网络运营中心</small></div></div>
+      <p class="sidebar-context">聚焦服务健康、流量变化与告警处置，把值班动作放在同一条工作路径中。</p>
       <nav aria-label="主导航">
         <a class="nav-item active" href="#overview"><span>01</span>运营总览</a>
         <a class="nav-item" href="#traffic"><span>02</span>流量监控</a>
@@ -216,13 +218,20 @@ onBeforeUnmount(() => { socket?.close(); if (reconnectTimer) window.clearTimeout
       </div>
     </aside>
 
-    <main>
+    <main id="main-content" tabindex="-1">
       <header class="topbar" id="overview">
-        <div><p class="eyebrow">OPERATIONS CENTER</p><h1>互联网流量实时监控</h1></div>
+        <div><p class="eyebrow">NETWORK OPERATIONS CENTER</p><h1>互联网流量实时监控</h1><p class="topbar-description">先判断服务状态，再聚焦异常服务，最后完成告警交接。</p></div>
         <div class="topbar-actions"><label class="time-window"><span>观察窗口</span><select v-model.number="timeWindowMinutes" aria-label="选择实时观察窗口" @change="changeTimeWindow"><option :value="15">近 15 分钟</option><option :value="60">近 1 小时</option><option :value="180">近 3 小时</option><option :value="1440">近 24 小时</option></select></label><div class="update-time"><span>数据更新时间</span><strong>{{ updatedLabel }}</strong></div></div>
       </header>
 
-      <p v-if="errorMessage" class="error-banner">{{ errorMessage }} <button @click="loadData">重新加载</button></p>
+      <section class="command-strip" aria-label="值班状态摘要">
+        <article><span :class="['signal-light', { online: connected }]" aria-hidden="true" /><div><small>实时通道</small><strong>{{ connected ? '在线' : '重连中' }}</strong></div></article>
+        <article><span class="command-code">SVC</span><div><small>活跃服务</small><strong>{{ summary.activeServices }}</strong></div></article>
+        <article><span class="command-code critical">P1</span><div><small>严重告警</small><strong>{{ alertSummary.activeCritical }}</strong></div></article>
+        <article><span class="command-code window">WIN</span><div><small>当前窗口</small><strong>{{ timeWindowLabel }}</strong></div></article>
+      </section>
+
+      <p v-if="errorMessage" class="error-banner" role="alert">{{ errorMessage }} <button @click="loadData">重新加载</button></p>
 
       <section class="panel metric-entry" aria-labelledby="metric-entry-title">
         <div class="panel-heading"><div><p class="eyebrow">LIVE INPUT</p><h2 id="metric-entry-title">提交实时流量样本</h2></div><span class="period">提交后同步至所有在线页面</span></div>

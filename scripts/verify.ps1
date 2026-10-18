@@ -18,6 +18,8 @@ Push-Location (Join-Path $projectRoot "frontend")
 try {
     & npm ci
     if ($LASTEXITCODE -ne 0) { throw "Frontend dependency installation failed." }
+    & npm test
+    if ($LASTEXITCODE -ne 0) { throw "Frontend interface tests failed." }
     & npm run build
     if ($LASTEXITCODE -ne 0) { throw "Frontend production build failed." }
 }
