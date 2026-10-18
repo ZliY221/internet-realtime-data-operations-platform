@@ -7,6 +7,7 @@ public record AlertDispatchResult(
         String owner, AlertBulkAction action, int count,
         int changedCount, int unchangedCount,
         int assignedCount, int statusChangedCount,
+        int criticalCount, int warningCount,
         int serviceCount, List<String> services,
         String receiptId, Instant executedAt, List<Alert> items
 ) {}

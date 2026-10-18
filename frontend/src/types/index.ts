@@ -58,6 +58,8 @@ export interface AlertDispatchResult {
   unchangedCount: number
   assignedCount: number
   statusChangedCount: number
+  criticalCount: number
+  warningCount: number
   serviceCount: number
   services: string[]
   receiptId: string

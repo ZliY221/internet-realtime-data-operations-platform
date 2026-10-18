@@ -194,6 +194,8 @@ public class AlertService {
         }
         List<Alert> updated = changedCount > 0 ? repository.saveAll(alerts) : alerts;
         List<String> services = alerts.stream().map(Alert::getServiceName).distinct().sorted().toList();
+        int criticalCount = (int) alerts.stream().filter(alert -> alert.getSeverity() == AlertSeverity.CRITICAL).count();
+        int warningCount = alerts.size() - criticalCount;
         String receiptId = "DSP-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
         Instant executedAt = Instant.now();
         if (changedCount > 0) {
@@ -201,12 +203,13 @@ public class AlertService {
                     "owner", normalizedOwner, "action", action,
                     "count", updated.size(), "changedCount", changedCount,
                     "assignedCount", assignedCount, "statusChangedCount", statusChangedCount,
+                    "criticalCount", criticalCount, "warningCount", warningCount,
                     "serviceCount", services.size(), "receiptId", receiptId,
                     "executedAt", executedAt.toString()));
         }
         return new AlertDispatchResult(
                 normalizedOwner, action, updated.size(), changedCount, updated.size() - changedCount,
-                assignedCount, statusChangedCount, services.size(), services,
+                assignedCount, statusChangedCount, criticalCount, warningCount, services.size(), services,
                 receiptId, executedAt, updated);
     }
 
