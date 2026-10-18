@@ -225,6 +225,8 @@ class ApiWorkflowIntegrationTest {
                 .andExpect(jsonPath("$.handoffChecklist[3]").value("RECORD_REVIEW_RESULT"))
                 .andExpect(jsonPath("$.handoffStepCount").value(4))
                 .andExpect(jsonPath("$.estimatedHandoffMinutes").value(20))
+                .andExpect(jsonPath("$.handoffReadiness").value("ESCALATION_REQUIRED"))
+                .andExpect(jsonPath("$.handoffBlockers[0]").value("SERVICE_OWNER_ESCALATION_REQUIRED"))
                 .andExpect(jsonPath("$.reviewWindowHours").value(1))
                 .andExpect(jsonPath("$.handoffSummary").value(org.hamcrest.Matchers.containsString("1h review")))
                 .andExpect(jsonPath("$.serviceCount").value(1))
@@ -245,6 +247,8 @@ class ApiWorkflowIntegrationTest {
                 .andExpect(jsonPath("$.handoffChecklist[0]").value("REVIEW_SELECTION"))
                 .andExpect(jsonPath("$.handoffStepCount").value(1))
                 .andExpect(jsonPath("$.estimatedHandoffMinutes").value(5))
+                .andExpect(jsonPath("$.handoffReadiness").value("SELECTION_REVIEW"))
+                .andExpect(jsonPath("$.handoffBlockers[0]").value("REVIEW_SELECTION"))
                 .andExpect(jsonPath("$.reviewWindowHours").doesNotExist())
                 .andExpect(jsonPath("$.unchangedCount").value(1))
                 .andExpect(jsonPath("$.receiptId").value(org.hamcrest.Matchers.matchesPattern("DSP-[0-9A-F]{8}")));

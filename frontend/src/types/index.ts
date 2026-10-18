@@ -71,6 +71,8 @@ export interface AlertDispatchResult {
   handoffChecklist: string[]
   handoffStepCount: number
   estimatedHandoffMinutes: number
+  handoffReadiness: 'SELECTION_REVIEW' | 'ESCALATION_REQUIRED' | 'VERIFICATION_REQUIRED' | 'READY_FOR_MONITORING'
+  handoffBlockers: string[]
   handoffSummary: string
   receiptId: string
   executedAt: string

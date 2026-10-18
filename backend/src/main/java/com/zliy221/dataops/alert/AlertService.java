@@ -213,6 +213,14 @@ public class AlertService {
                 : List.of("VERIFY_DISPATCH_RECEIPT", "CONTACT_ASSIGNED_OWNER", nextAction, "RECORD_REVIEW_RESULT");
         int handoffStepCount = handoffChecklist.size();
         int estimatedHandoffMinutes = handoffStepCount * 5;
+        String handoffReadiness = changedCount == 0 ? "SELECTION_REVIEW"
+                : "ESCALATE_SERVICE_OWNER".equals(nextAction) ? "ESCALATION_REQUIRED"
+                : "VERIFY_SERVICE_RECOVERY".equals(nextAction) ? "VERIFICATION_REQUIRED"
+                : "READY_FOR_MONITORING";
+        List<String> handoffBlockers = changedCount == 0 ? List.of("REVIEW_SELECTION")
+                : "ESCALATE_SERVICE_OWNER".equals(nextAction) ? List.of("SERVICE_OWNER_ESCALATION_REQUIRED")
+                : "VERIFY_SERVICE_RECOVERY".equals(nextAction) ? List.of("SERVICE_RECOVERY_VERIFICATION_REQUIRED")
+                : List.of();
         String handoffSummary = receiptId + " · " + outcome + " · " + services.size()
                 + " services · " + criticalCount + " critical · "
                 + (reviewWindowHours == null ? "no follow-up" : reviewWindowHours + "h review")
@@ -236,6 +244,8 @@ public class AlertService {
             dispatchEvent.put("handoffChecklist", handoffChecklist);
             dispatchEvent.put("handoffStepCount", handoffStepCount);
             dispatchEvent.put("estimatedHandoffMinutes", estimatedHandoffMinutes);
+            dispatchEvent.put("handoffReadiness", handoffReadiness);
+            dispatchEvent.put("handoffBlockers", handoffBlockers);
             dispatchEvent.put("handoffSummary", handoffSummary);
             dispatchEvent.put("serviceCount", services.size());
             dispatchEvent.put("receiptId", receiptId);
@@ -246,7 +256,8 @@ public class AlertService {
                 normalizedOwner, action, updated.size(), changedCount, updated.size() - changedCount,
                 outcome, assignedCount, statusChangedCount, criticalCount, warningCount, statusBeforeCounts,
                 services.size(), services, followUpRequired, reviewPriority, reviewWindowHours,
-                nextAction, handoffChecklist, handoffStepCount, estimatedHandoffMinutes, handoffSummary,
+                nextAction, handoffChecklist, handoffStepCount, estimatedHandoffMinutes,
+                handoffReadiness, handoffBlockers, handoffSummary,
                 receiptId, executedAt, updated);
     }
 

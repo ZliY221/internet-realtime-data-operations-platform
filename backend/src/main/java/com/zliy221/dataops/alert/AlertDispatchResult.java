@@ -14,6 +14,7 @@ public record AlertDispatchResult(
         int serviceCount, List<String> services,
         boolean followUpRequired, String reviewPriority, Integer reviewWindowHours,
         String nextAction, List<String> handoffChecklist, int handoffStepCount,
-        int estimatedHandoffMinutes, String handoffSummary,
+        int estimatedHandoffMinutes, String handoffReadiness, List<String> handoffBlockers,
+        String handoffSummary,
         String receiptId, Instant executedAt, List<Alert> items
 ) {}
