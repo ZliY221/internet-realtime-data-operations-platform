@@ -29,7 +29,7 @@
 - `POST /api/v1/alerts/{id}/acknowledge`：确认告警。
 - `POST /api/v1/alerts/{id}/resolve`：解决告警。
 - `POST /api/v1/alerts/dispatch/preview`：只读预览统一处置的告警、服务和严重级别影响范围。
-- `POST /api/v1/alerts/dispatch`：组合执行分派与状态推进，回执包含执行结论、严重/警告数量、原状态分布、服务范围和执行编号。
+- `POST /api/v1/alerts/dispatch`：组合执行分派与状态推进，回执包含执行结论、严重/警告数量、原状态分布、服务范围、复核窗口和交接摘要。
 - `POST /api/v1/alerts/dispatch`：统一完成分派与状态推进，返回 `receiptId`、`executedAt`、服务范围及实际更新/跳过数量。
 
 ## 实时通道

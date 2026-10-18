@@ -64,6 +64,9 @@ export interface AlertDispatchResult {
   statusBeforeCounts: Record<string, number>
   serviceCount: number
   services: string[]
+  followUpRequired: boolean
+  reviewWindowHours: number | null
+  handoffSummary: string
   receiptId: string
   executedAt: string
   items: Alert[]
