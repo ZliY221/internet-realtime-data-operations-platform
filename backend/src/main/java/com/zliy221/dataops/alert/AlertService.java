@@ -205,9 +205,13 @@ public class AlertService {
         boolean followUpRequired = changedCount > 0;
         String reviewPriority = changedCount == 0 ? "NONE" : criticalCount > 0 ? "P0" : "P1";
         Integer reviewWindowHours = changedCount == 0 ? null : criticalCount > 0 ? 1 : 4;
+        String nextAction = changedCount == 0 ? "REVIEW_SELECTION"
+                : action == AlertBulkAction.RESOLVE ? "VERIFY_SERVICE_RECOVERY"
+                : criticalCount > 0 ? "ESCALATE_SERVICE_OWNER" : "MONITOR_SERVICE";
         String handoffSummary = receiptId + " · " + outcome + " · " + services.size()
                 + " services · " + criticalCount + " critical · "
-                + (reviewWindowHours == null ? "no follow-up" : reviewWindowHours + "h review");
+                + (reviewWindowHours == null ? "no follow-up" : reviewWindowHours + "h review")
+                + " · " + nextAction;
         if (changedCount > 0) {
             Map<String, Object> dispatchEvent = new TreeMap<>();
             dispatchEvent.put("owner", normalizedOwner);
@@ -223,6 +227,7 @@ public class AlertService {
             dispatchEvent.put("followUpRequired", followUpRequired);
             dispatchEvent.put("reviewPriority", reviewPriority);
             dispatchEvent.put("reviewWindowHours", reviewWindowHours);
+            dispatchEvent.put("nextAction", nextAction);
             dispatchEvent.put("handoffSummary", handoffSummary);
             dispatchEvent.put("serviceCount", services.size());
             dispatchEvent.put("receiptId", receiptId);
@@ -232,7 +237,8 @@ public class AlertService {
         return new AlertDispatchResult(
                 normalizedOwner, action, updated.size(), changedCount, updated.size() - changedCount,
                 outcome, assignedCount, statusChangedCount, criticalCount, warningCount, statusBeforeCounts,
-                services.size(), services, followUpRequired, reviewPriority, reviewWindowHours, handoffSummary,
+                services.size(), services, followUpRequired, reviewPriority, reviewWindowHours,
+                nextAction, handoffSummary,
                 receiptId, executedAt, updated);
     }
 

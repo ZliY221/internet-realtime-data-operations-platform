@@ -12,6 +12,7 @@ public record AlertDispatchResult(
         int criticalCount, int warningCount,
         Map<String, Integer> statusBeforeCounts,
         int serviceCount, List<String> services,
-        boolean followUpRequired, String reviewPriority, Integer reviewWindowHours, String handoffSummary,
+        boolean followUpRequired, String reviewPriority, Integer reviewWindowHours,
+        String nextAction, String handoffSummary,
         String receiptId, Instant executedAt, List<Alert> items
 ) {}

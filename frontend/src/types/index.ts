@@ -67,6 +67,7 @@ export interface AlertDispatchResult {
   followUpRequired: boolean
   reviewPriority: 'P0' | 'P1' | 'NONE'
   reviewWindowHours: number | null
+  nextAction: 'REVIEW_SELECTION' | 'VERIFY_SERVICE_RECOVERY' | 'ESCALATE_SERVICE_OWNER' | 'MONITOR_SERVICE'
   handoffSummary: string
   receiptId: string
   executedAt: string

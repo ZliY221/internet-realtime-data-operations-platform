@@ -220,6 +220,7 @@ class ApiWorkflowIntegrationTest {
                 .andExpect(jsonPath("$.statusBeforeCounts.OPEN").value(1))
                 .andExpect(jsonPath("$.followUpRequired").value(true))
                 .andExpect(jsonPath("$.reviewPriority").value("P0"))
+                .andExpect(jsonPath("$.nextAction").value("ESCALATE_SERVICE_OWNER"))
                 .andExpect(jsonPath("$.reviewWindowHours").value(1))
                 .andExpect(jsonPath("$.handoffSummary").value(org.hamcrest.Matchers.containsString("1h review")))
                 .andExpect(jsonPath("$.serviceCount").value(1))
@@ -236,6 +237,7 @@ class ApiWorkflowIntegrationTest {
                 .andExpect(jsonPath("$.outcome").value("NO_CHANGE"))
                 .andExpect(jsonPath("$.followUpRequired").value(false))
                 .andExpect(jsonPath("$.reviewPriority").value("NONE"))
+                .andExpect(jsonPath("$.nextAction").value("REVIEW_SELECTION"))
                 .andExpect(jsonPath("$.reviewWindowHours").doesNotExist())
                 .andExpect(jsonPath("$.unchangedCount").value(1))
                 .andExpect(jsonPath("$.receiptId").value(org.hamcrest.Matchers.matchesPattern("DSP-[0-9A-F]{8}")));
