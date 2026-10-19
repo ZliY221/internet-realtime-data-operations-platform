@@ -19,4 +19,12 @@ public class IncidentInsightsController {
     public IncidentInsightsService.BlastRadius blastRadius(@RequestParam String serviceName) {
         return service.blastRadius(serviceName);
     }
+
+    @GetMapping("/error-budget")
+    public IncidentInsightsService.ErrorBudget errorBudget(
+            @RequestParam String serviceName,
+            @RequestParam(defaultValue = "1440") int minutes,
+            @RequestParam(defaultValue = "0.999") double objective) {
+        return service.errorBudget(serviceName, minutes, objective);
+    }
 }
