@@ -26,6 +26,8 @@ public class IncidentInsightsService {
     public record ErrorBudget(String serviceName, int windowMinutes, double objective,
                               long requestCount, long errorCount, double availability,
                               long remainingErrorBudget, String status) {}
+    public record Runbook(String serviceName, String owner, List<String> steps,
+                          boolean postmortemRequired, List<String> postmortemSections) {}
 
     private static final Map<String, List<String>> DEPENDENCIES = Map.of(
             "gateway", List.of("checkout", "catalog"),
@@ -76,5 +78,20 @@ public class IncidentInsightsService {
         long remaining = allowedErrors - errors;
         String status = requests == 0 ? "NO_DATA" : remaining < 0 ? "EXHAUSTED" : remaining <= Math.max(1, allowedErrors / 4) ? "AT_RISK" : "HEALTHY";
         return new ErrorBudget(normalized, minutes, objective, requests, errors, availability, remaining, status);
+    }
+
+    @Transactional(readOnly = true)
+    public Runbook runbook(long id) {
+        Incident incident = incidentRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("事故不存在: " + id));
+        List<String> steps = new ArrayList<>();
+        steps.add("核对最近指标与关联告警");
+        steps.add("确认 " + incident.getServiceName() + " 上下游影响范围");
+        if (incident.getSeverity().name().equals("CRITICAL")) steps.add("通知服务负责人并建立升级通道");
+        steps.add("执行恢复动作并持续观察错误预算");
+        steps.add("确认指标恢复后关闭事故");
+        boolean postmortem = incident.getSeverity().name().equals("CRITICAL");
+        return new Runbook(incident.getServiceName(), incident.getOwner(), steps, postmortem,
+                List.of("事故摘要", "影响范围", "根因", "恢复过程", "后续行动"));
     }
 }
