@@ -14,4 +14,9 @@ public class IncidentInsightsController {
     public List<IncidentInsightsService.TimelineEvent> timeline(@PathVariable long id) {
         return service.timeline(id);
     }
+
+    @GetMapping("/blast-radius")
+    public IncidentInsightsService.BlastRadius blastRadius(@RequestParam String serviceName) {
+        return service.blastRadius(serviceName);
+    }
 }
