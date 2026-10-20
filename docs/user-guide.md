@@ -78,6 +78,8 @@ v2.0.0 采用网络运营中心版型：深色侧栏用于稳定导航，浅色�
 
 `GET /api/v2/incidents/reliability-score?serviceName=checkout&minutes=1440&objective=0.999` 将窗口可用性换算为 0 至 100 分，并按下游依赖数量扣减复杂度分，返回 A 至 D 等级及错误预算状态。
 
+`GET /api/v2/incidents/{id}/briefing` 将事故级别、负责人、升级对象、依赖风险、影响服务数和下一步处置合并为一页式简报。换班或临时接手时先查看简报，再进入时间线与运行手册处理。
+
 `GET /api/v2/incidents/{id}/runbook` 根据事故服务、严重度和负责人生成可执行恢复步骤；严重事故同时返回复盘要求以及摘要、影响、根因、恢复和后续行动五个固定章节。
 
 `GET /api/v2/incidents/error-budget?serviceName=checkout&minutes=1440&objective=0.999` 汇总观察窗口内的请求与错误，返回可用性、剩余错误预算及健康状态；预算耗尽时应暂停非必要发布并优先恢复服务。

@@ -37,6 +37,9 @@ public class IncidentInsightsService {
     public record ReliabilityScore(String serviceName, double score, String grade,
                                    double availability, int dependencyPenalty,
                                    String budgetStatus) {}
+    public record IncidentBriefing(long incidentId, String serviceName, String severity,
+                                   String owner, String escalationOwner, String riskLevel,
+                                   int impactedServiceCount, List<String> nextSteps) {}
 
     private static final Map<String, List<String>> DEPENDENCIES = Map.of(
             "gateway", List.of("checkout", "catalog"),
@@ -135,5 +138,20 @@ public class IncidentInsightsService {
         String grade = score >= 95 ? "A" : score >= 85 ? "B" : score >= 70 ? "C" : "D";
         return new ReliabilityScore(serviceName.trim(), score, grade, budget.availability(),
                 penalty, budget.status());
+    }
+
+    @Transactional(readOnly = true)
+    public IncidentBriefing briefing(long id) {
+        Incident incident = incidentRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("事故不存在: " + id));
+        BlastRadius radius = blastRadius(incident.getServiceName());
+        boolean critical = incident.getSeverity().name().equals("CRITICAL");
+        List<String> steps = new ArrayList<>();
+        steps.add("确认事故负责人和升级通道");
+        if (radius.impactedServiceCount() > 0) steps.add("通知受影响的下游服务");
+        steps.add("执行运行手册并记录时间线");
+        return new IncidentBriefing(id, incident.getServiceName(), incident.getSeverity().name(),
+                incident.getOwner(), critical ? "platform-lead" : "service-owner",
+                radius.riskLevel(), radius.impactedServiceCount(), steps);
     }
 }

@@ -52,4 +52,9 @@ public class IncidentInsightsController {
             @RequestParam(defaultValue = "0.999") double objective) {
         return service.reliabilityScore(serviceName, minutes, objective);
     }
+
+    @GetMapping("/{id}/briefing")
+    public IncidentInsightsService.IncidentBriefing briefing(@PathVariable long id) {
+        return service.briefing(id);
+    }
 }

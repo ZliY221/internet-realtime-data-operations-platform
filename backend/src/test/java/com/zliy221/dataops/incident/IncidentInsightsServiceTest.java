@@ -59,4 +59,14 @@ class IncidentInsightsServiceTest {
         assertEquals(90.0, score.score());
         assertEquals("B", score.grade());
     }
+
+    @Test
+    void briefingCombinesIncidentAndDependencyContext() {
+        Incident incident = new Incident("checkout", AlertSeverity.CRITICAL, Instant.parse("2026-10-20T00:00:00Z"));
+        when(incidents.findById(10L)).thenReturn(Optional.of(incident));
+        var briefing = service.briefing(10L);
+        assertEquals("platform-lead", briefing.escalationOwner());
+        assertEquals(2, briefing.impactedServiceCount());
+        assertEquals(3, briefing.nextSteps().size());
+    }
 }
