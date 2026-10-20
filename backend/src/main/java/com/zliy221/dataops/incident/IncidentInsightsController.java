@@ -78,4 +78,9 @@ public class IncidentInsightsController {
             @RequestParam boolean downstreamHealthy) {
         return service.validateRecovery(metricsRecovered, budgetHealthy, downstreamHealthy);
     }
+
+    @GetMapping("/{id}/executive-summary")
+    public IncidentInsightsService.ExecutiveSummary executiveSummary(@PathVariable long id) {
+        return service.executiveSummary(id);
+    }
 }

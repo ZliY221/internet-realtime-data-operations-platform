@@ -152,7 +152,7 @@ compose.yaml   PostgreSQL、后端与前端编排
 
 ## 版本与维护
 
-当前版本为 `v2.11.0`。事故中心新增恢复验证，只有核心指标、错误预算和下游服务全部正常时才确认恢复完成。每次发布同步维护[用户使用指南](docs/user-guide.md)、[版本记录](CHANGELOG.md)和[版本摘要](VERSION_LOG.md)。
+当前版本为 `v2.12.0`。事故中心新增管理摘要，统一展示服务、级别、状态、影响范围、负责人和需要确认的关键决策。每次发布同步维护[用户使用指南](docs/user-guide.md)、[版本记录](CHANGELOG.md)和[版本摘要](VERSION_LOG.md)。
 
 ## License
 

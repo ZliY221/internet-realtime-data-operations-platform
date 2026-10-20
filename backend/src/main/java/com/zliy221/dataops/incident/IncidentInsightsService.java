@@ -49,6 +49,9 @@ public class IncidentInsightsService {
     public record RecoveryValidation(boolean metricsRecovered, boolean budgetHealthy,
                                      boolean downstreamHealthy, String status,
                                      List<String> failedChecks) {}
+    public record ExecutiveSummary(long incidentId, String serviceName, String severity,
+                                   String status, int impactedServiceCount,
+                                   String owner, String headline, List<String> decisions) {}
 
     private static final Map<String, List<String>> DEPENDENCIES = Map.of(
             "gateway", List.of("checkout", "catalog"),
@@ -197,5 +200,19 @@ public class IncidentInsightsService {
         if (!downstreamHealthy) failed.add("下游服务尚未恢复");
         return new RecoveryValidation(metricsRecovered, budgetHealthy, downstreamHealthy,
                 failed.isEmpty() ? "VERIFIED" : "INCOMPLETE", failed);
+    }
+
+    @Transactional(readOnly = true)
+    public ExecutiveSummary executiveSummary(long id) {
+        Incident incident = incidentRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("事故不存在: " + id));
+        BlastRadius radius = blastRadius(incident.getServiceName());
+        boolean critical = incident.getSeverity().name().equals("CRITICAL");
+        List<String> decisions = new ArrayList<>();
+        decisions.add(critical ? "保持变更冻结并维持升级通道" : "由服务负责人持续跟进");
+        if (radius.impactedServiceCount() > 0) decisions.add("同步下游服务影响与恢复进度");
+        return new ExecutiveSummary(id, incident.getServiceName(), incident.getSeverity().name(),
+                incident.getStatus().name(), radius.impactedServiceCount(), incident.getOwner(),
+                incident.getServiceName() + " 服务事故正在处置", decisions);
     }
 }

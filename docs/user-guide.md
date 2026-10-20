@@ -86,6 +86,8 @@ v2.0.0 采用网络运营中心版型：深色侧栏用于稳定导航，浅色�
 
 `GET /api/v2/incidents/recovery-validation` 接收核心指标、错误预算和下游健康三个确认结果。全部通过时返回 `VERIFIED`，否则返回 `INCOMPLETE` 和未通过检查，防止过早关闭事故。
 
+`GET /api/v2/incidents/{id}/executive-summary` 返回适合管理沟通的事故标题、状态、影响服务数、负责人和关键决策。该摘要不替代技术时间线，适合用于状态同步和升级会议。
+
 `GET /api/v2/incidents/{id}/runbook` 根据事故服务、严重度和负责人生成可执行恢复步骤；严重事故同时返回复盘要求以及摘要、影响、根因、恢复和后续行动五个固定章节。
 
 `GET /api/v2/incidents/error-budget?serviceName=checkout&minutes=1440&objective=0.999` 汇总观察窗口内的请求与错误，返回可用性、剩余错误预算及健康状态；预算耗尽时应暂停非必要发布并优先恢复服务。

@@ -90,4 +90,13 @@ class IncidentInsightsServiceTest {
         assertEquals("INCOMPLETE", validation.status());
         assertEquals(1, validation.failedChecks().size());
     }
+
+    @Test
+    void executiveSummaryKeepsDecisionContext() {
+        Incident incident = new Incident("checkout", AlertSeverity.CRITICAL, Instant.parse("2026-10-20T00:00:00Z"));
+        when(incidents.findById(11L)).thenReturn(Optional.of(incident));
+        var summary = service.executiveSummary(11L);
+        assertEquals(2, summary.impactedServiceCount());
+        assertTrue(summary.decisions().getFirst().contains("变更冻结"));
+    }
 }
