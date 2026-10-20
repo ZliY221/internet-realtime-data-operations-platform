@@ -57,4 +57,11 @@ public class IncidentInsightsController {
     public IncidentInsightsService.IncidentBriefing briefing(@PathVariable long id) {
         return service.briefing(id);
     }
+
+    @GetMapping("/change-window")
+    public IncidentInsightsService.ChangeWindow changeWindow(
+            @RequestParam String serviceName, @RequestParam double reliabilityScore,
+            @RequestParam(defaultValue = "0") int activeCriticalIncidents) {
+        return service.changeWindow(serviceName, reliabilityScore, activeCriticalIncidents);
+    }
 }

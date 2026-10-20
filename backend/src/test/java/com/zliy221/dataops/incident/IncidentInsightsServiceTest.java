@@ -69,4 +69,11 @@ class IncidentInsightsServiceTest {
         assertEquals(2, briefing.impactedServiceCount());
         assertEquals(3, briefing.nextSteps().size());
     }
+
+    @Test
+    void changeWindowFreezesLowReliabilityService() {
+        var window = service.changeWindow("checkout", 80, 0);
+        assertEquals("FROZEN", window.status());
+        assertEquals(1, window.blockers().size());
+    }
 }

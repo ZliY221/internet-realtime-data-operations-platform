@@ -40,6 +40,9 @@ public class IncidentInsightsService {
     public record IncidentBriefing(long incidentId, String serviceName, String severity,
                                    String owner, String escalationOwner, String riskLevel,
                                    int impactedServiceCount, List<String> nextSteps) {}
+    public record ChangeWindow(String serviceName, double reliabilityScore,
+                               int activeCriticalIncidents, String status,
+                               List<String> blockers) {}
 
     private static final Map<String, List<String>> DEPENDENCIES = Map.of(
             "gateway", List.of("checkout", "catalog"),
@@ -153,5 +156,18 @@ public class IncidentInsightsService {
         return new IncidentBriefing(id, incident.getServiceName(), incident.getSeverity().name(),
                 incident.getOwner(), critical ? "platform-lead" : "service-owner",
                 radius.riskLevel(), radius.impactedServiceCount(), steps);
+    }
+
+    public ChangeWindow changeWindow(String serviceName, double reliabilityScore,
+                                     int activeCriticalIncidents) {
+        if (reliabilityScore < 0 || reliabilityScore > 100 || activeCriticalIncidents < 0) {
+            throw new IllegalArgumentException("可靠性分数或事故数量无效");
+        }
+        blastRadius(serviceName);
+        List<String> blockers = new ArrayList<>();
+        if (reliabilityScore < 85) blockers.add("服务可靠性低于 85 分");
+        if (activeCriticalIncidents > 0) blockers.add("存在活动严重事故");
+        return new ChangeWindow(serviceName.trim(), reliabilityScore, activeCriticalIncidents,
+                blockers.isEmpty() ? "OPEN" : "FROZEN", blockers);
     }
 }
