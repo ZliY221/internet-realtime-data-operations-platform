@@ -152,7 +152,7 @@ compose.yaml   PostgreSQL、后端与前端编排
 
 ## 版本与维护
 
-当前版本为 `v2.9.0`。事故中心新增变更窗口护栏，可靠性不足或存在严重事故时自动冻结高风险变更。每次发布同步维护[用户使用指南](docs/user-guide.md)、[版本记录](CHANGELOG.md)和[版本摘要](VERSION_LOG.md)。
+当前版本为 `v2.10.0`。事故中心新增值班容量评估，根据活动事故、严重事故和响应人员数量识别过载并建议增援。每次发布同步维护[用户使用指南](docs/user-guide.md)、[版本记录](CHANGELOG.md)和[版本摘要](VERSION_LOG.md)。
 
 ## License
 

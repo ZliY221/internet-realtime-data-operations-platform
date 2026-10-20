@@ -76,4 +76,11 @@ class IncidentInsightsServiceTest {
         assertEquals("FROZEN", window.status());
         assertEquals(1, window.blockers().size());
     }
+
+    @Test
+    void onCallCapacityRecommendsAdditionalResponders() {
+        var capacity = service.onCallCapacity(12, 3, 2);
+        assertEquals("OVERLOADED", capacity.status());
+        assertEquals(1, capacity.recommendedAdditionalResponders());
+    }
 }

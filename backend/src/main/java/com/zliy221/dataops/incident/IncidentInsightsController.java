@@ -64,4 +64,11 @@ public class IncidentInsightsController {
             @RequestParam(defaultValue = "0") int activeCriticalIncidents) {
         return service.changeWindow(serviceName, reliabilityScore, activeCriticalIncidents);
     }
+
+    @GetMapping("/on-call-capacity")
+    public IncidentInsightsService.OnCallCapacity onCallCapacity(
+            @RequestParam int activeIncidents, @RequestParam int criticalIncidents,
+            @RequestParam int responders) {
+        return service.onCallCapacity(activeIncidents, criticalIncidents, responders);
+    }
 }

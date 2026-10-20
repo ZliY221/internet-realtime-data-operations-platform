@@ -43,6 +43,9 @@ public class IncidentInsightsService {
     public record ChangeWindow(String serviceName, double reliabilityScore,
                                int activeCriticalIncidents, String status,
                                List<String> blockers) {}
+    public record OnCallCapacity(int activeIncidents, int criticalIncidents,
+                                 int responders, double incidentsPerResponder,
+                                 String status, int recommendedAdditionalResponders) {}
 
     private static final Map<String, List<String>> DEPENDENCIES = Map.of(
             "gateway", List.of("checkout", "catalog"),
@@ -169,5 +172,17 @@ public class IncidentInsightsService {
         if (activeCriticalIncidents > 0) blockers.add("存在活动严重事故");
         return new ChangeWindow(serviceName.trim(), reliabilityScore, activeCriticalIncidents,
                 blockers.isEmpty() ? "OPEN" : "FROZEN", blockers);
+    }
+
+    public OnCallCapacity onCallCapacity(int activeIncidents, int criticalIncidents, int responders) {
+        if (activeIncidents < 0 || criticalIncidents < 0 || criticalIncidents > activeIncidents || responders < 1) {
+            throw new IllegalArgumentException("值班容量输入无效");
+        }
+        double load = (double) activeIncidents / responders;
+        String status = criticalIncidents > responders || load > 5 ? "OVERLOADED" : load > 3 ? "BUSY" : "AVAILABLE";
+        int required = Math.max(responders, (int) Math.ceil(activeIncidents / 5.0));
+        if (criticalIncidents > required) required = criticalIncidents;
+        return new OnCallCapacity(activeIncidents, criticalIncidents, responders, load, status,
+                Math.max(0, required - responders));
     }
 }
