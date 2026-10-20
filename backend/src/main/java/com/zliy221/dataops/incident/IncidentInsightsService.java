@@ -28,6 +28,9 @@ public class IncidentInsightsService {
                               long remainingErrorBudget, String status) {}
     public record Runbook(String serviceName, String owner, List<String> steps,
                           boolean postmortemRequired, List<String> postmortemSections) {}
+    public record EscalationPlan(String serviceName, String severity, String primaryOwner,
+                                 String escalationOwner, int acknowledgeWithinMinutes,
+                                 List<String> communicationSteps) {}
 
     private static final Map<String, List<String>> DEPENDENCIES = Map.of(
             "gateway", List.of("checkout", "catalog"),
@@ -93,5 +96,16 @@ public class IncidentInsightsService {
         boolean postmortem = incident.getSeverity().name().equals("CRITICAL");
         return new Runbook(incident.getServiceName(), incident.getOwner(), steps, postmortem,
                 List.of("事故摘要", "影响范围", "根因", "恢复过程", "后续行动"));
+    }
+
+    @Transactional(readOnly = true)
+    public EscalationPlan escalationPlan(long id) {
+        Incident incident = incidentRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("事故不存在: " + id));
+        boolean critical = incident.getSeverity().name().equals("CRITICAL");
+        return new EscalationPlan(incident.getServiceName(), incident.getSeverity().name(),
+                incident.getOwner(), critical ? "platform-lead" : "service-owner",
+                critical ? 10 : 30,
+                List.of("确认负责人已收到事故", "同步影响范围与当前状态", "记录下一次更新时间"));
     }
 }

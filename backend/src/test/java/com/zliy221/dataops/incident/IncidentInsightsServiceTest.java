@@ -32,4 +32,13 @@ class IncidentInsightsServiceTest {
         assertTrue(runbook.steps().stream().anyMatch(step -> step.contains("升级")));
         assertEquals(5, runbook.postmortemSections().size());
     }
+
+    @Test
+    void criticalIncidentEscalatesToPlatformLead() {
+        Incident incident = new Incident("payment", AlertSeverity.CRITICAL, Instant.parse("2026-10-20T00:00:00Z"));
+        when(incidents.findById(9L)).thenReturn(Optional.of(incident));
+        var plan = service.escalationPlan(9L);
+        assertEquals("platform-lead", plan.escalationOwner());
+        assertEquals(10, plan.acknowledgeWithinMinutes());
+    }
 }

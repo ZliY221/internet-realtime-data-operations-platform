@@ -32,4 +32,9 @@ public class IncidentInsightsController {
     public IncidentInsightsService.Runbook runbook(@PathVariable long id) {
         return service.runbook(id);
     }
+
+    @GetMapping("/{id}/escalation")
+    public IncidentInsightsService.EscalationPlan escalation(@PathVariable long id) {
+        return service.escalationPlan(id);
+    }
 }
