@@ -44,4 +44,12 @@ public class IncidentInsightsController {
             @RequestParam(defaultValue = "30") int durationMinutes) {
         return service.maintenanceImpact(serviceName, durationMinutes);
     }
+
+    @GetMapping("/reliability-score")
+    public IncidentInsightsService.ReliabilityScore reliabilityScore(
+            @RequestParam String serviceName,
+            @RequestParam(defaultValue = "1440") int minutes,
+            @RequestParam(defaultValue = "0.999") double objective) {
+        return service.reliabilityScore(serviceName, minutes, objective);
+    }
 }

@@ -76,6 +76,8 @@ v2.0.0 采用网络运营中心版型：深色侧栏用于稳定导航，浅色�
 
 `GET /api/v2/incidents/maintenance-impact?serviceName=checkout&durationMinutes=30` 在维护前列出下游影响服务、风险等级、是否需要审批和标准检查清单。影响两个及以上下游或窗口超过一小时的维护必须先审批。
 
+`GET /api/v2/incidents/reliability-score?serviceName=checkout&minutes=1440&objective=0.999` 将窗口可用性换算为 0 至 100 分，并按下游依赖数量扣减复杂度分，返回 A 至 D 等级及错误预算状态。
+
 `GET /api/v2/incidents/{id}/runbook` 根据事故服务、严重度和负责人生成可执行恢复步骤；严重事故同时返回复盘要求以及摘要、影响、根因、恢复和后续行动五个固定章节。
 
 `GET /api/v2/incidents/error-budget?serviceName=checkout&minutes=1440&objective=0.999` 汇总观察窗口内的请求与错误，返回可用性、剩余错误预算及健康状态；预算耗尽时应暂停非必要发布并优先恢复服务。

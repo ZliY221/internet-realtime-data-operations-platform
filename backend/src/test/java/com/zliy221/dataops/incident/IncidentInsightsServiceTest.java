@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.Optional;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -48,5 +49,14 @@ class IncidentInsightsServiceTest {
         assertTrue(impact.approvalRequired());
         assertEquals("HIGH", impact.riskLevel());
         assertTrue(impact.affectedServices().contains("payment"));
+    }
+
+    @Test
+    void reliabilityScoreIncludesDependencyPenalty() {
+        when(metrics.findSinceForService(any(), eq("checkout"))).thenReturn(List.of());
+        var score = service.reliabilityScore("checkout", 60, 0.999);
+        assertEquals(10, score.dependencyPenalty());
+        assertEquals(90.0, score.score());
+        assertEquals("B", score.grade());
     }
 }

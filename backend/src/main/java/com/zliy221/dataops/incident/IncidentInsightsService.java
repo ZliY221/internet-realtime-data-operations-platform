@@ -34,6 +34,9 @@ public class IncidentInsightsService {
     public record MaintenanceImpact(String serviceName, int durationMinutes,
                                     List<String> affectedServices, String riskLevel,
                                     boolean approvalRequired, List<String> checklist) {}
+    public record ReliabilityScore(String serviceName, double score, String grade,
+                                   double availability, int dependencyPenalty,
+                                   String budgetStatus) {}
 
     private static final Map<String, List<String>> DEPENDENCIES = Map.of(
             "gateway", List.of("checkout", "catalog"),
@@ -121,5 +124,16 @@ public class IncidentInsightsService {
         String risk = approval ? "HIGH" : radius.impactedServiceCount() == 1 ? "MEDIUM" : "LOW";
         return new MaintenanceImpact(radius.serviceName(), durationMinutes, radius.downstream(), risk,
                 approval, List.of("确认维护窗口", "通知受影响服务负责人", "准备回退方案", "维护后验证指标"));
+    }
+
+    @Transactional(readOnly = true)
+    public ReliabilityScore reliabilityScore(String serviceName, int minutes, double objective) {
+        ErrorBudget budget = errorBudget(serviceName, minutes, objective);
+        BlastRadius radius = blastRadius(serviceName);
+        int penalty = radius.impactedServiceCount() * 5;
+        double score = Math.max(0.0, Math.min(100.0, budget.availability() * 100.0 - penalty));
+        String grade = score >= 95 ? "A" : score >= 85 ? "B" : score >= 70 ? "C" : "D";
+        return new ReliabilityScore(serviceName.trim(), score, grade, budget.availability(),
+                penalty, budget.status());
     }
 }
