@@ -46,6 +46,9 @@ public class IncidentInsightsService {
     public record OnCallCapacity(int activeIncidents, int criticalIncidents,
                                  int responders, double incidentsPerResponder,
                                  String status, int recommendedAdditionalResponders) {}
+    public record RecoveryValidation(boolean metricsRecovered, boolean budgetHealthy,
+                                     boolean downstreamHealthy, String status,
+                                     List<String> failedChecks) {}
 
     private static final Map<String, List<String>> DEPENDENCIES = Map.of(
             "gateway", List.of("checkout", "catalog"),
@@ -184,5 +187,15 @@ public class IncidentInsightsService {
         if (criticalIncidents > required) required = criticalIncidents;
         return new OnCallCapacity(activeIncidents, criticalIncidents, responders, load, status,
                 Math.max(0, required - responders));
+    }
+
+    public RecoveryValidation validateRecovery(boolean metricsRecovered, boolean budgetHealthy,
+                                               boolean downstreamHealthy) {
+        List<String> failed = new ArrayList<>();
+        if (!metricsRecovered) failed.add("核心指标尚未恢复");
+        if (!budgetHealthy) failed.add("错误预算仍处于风险状态");
+        if (!downstreamHealthy) failed.add("下游服务尚未恢复");
+        return new RecoveryValidation(metricsRecovered, budgetHealthy, downstreamHealthy,
+                failed.isEmpty() ? "VERIFIED" : "INCOMPLETE", failed);
     }
 }

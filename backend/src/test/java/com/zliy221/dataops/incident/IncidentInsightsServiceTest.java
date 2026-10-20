@@ -83,4 +83,11 @@ class IncidentInsightsServiceTest {
         assertEquals("OVERLOADED", capacity.status());
         assertEquals(1, capacity.recommendedAdditionalResponders());
     }
+
+    @Test
+    void recoveryRequiresMetricsBudgetAndDownstream() {
+        var validation = service.validateRecovery(true, false, true);
+        assertEquals("INCOMPLETE", validation.status());
+        assertEquals(1, validation.failedChecks().size());
+    }
 }

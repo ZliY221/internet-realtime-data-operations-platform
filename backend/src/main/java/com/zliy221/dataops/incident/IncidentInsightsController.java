@@ -71,4 +71,11 @@ public class IncidentInsightsController {
             @RequestParam int responders) {
         return service.onCallCapacity(activeIncidents, criticalIncidents, responders);
     }
+
+    @GetMapping("/recovery-validation")
+    public IncidentInsightsService.RecoveryValidation recoveryValidation(
+            @RequestParam boolean metricsRecovered, @RequestParam boolean budgetHealthy,
+            @RequestParam boolean downstreamHealthy) {
+        return service.validateRecovery(metricsRecovered, budgetHealthy, downstreamHealthy);
+    }
 }
