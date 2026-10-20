@@ -31,6 +31,9 @@ public class IncidentInsightsService {
     public record EscalationPlan(String serviceName, String severity, String primaryOwner,
                                  String escalationOwner, int acknowledgeWithinMinutes,
                                  List<String> communicationSteps) {}
+    public record MaintenanceImpact(String serviceName, int durationMinutes,
+                                    List<String> affectedServices, String riskLevel,
+                                    boolean approvalRequired, List<String> checklist) {}
 
     private static final Map<String, List<String>> DEPENDENCIES = Map.of(
             "gateway", List.of("checkout", "catalog"),
@@ -107,5 +110,16 @@ public class IncidentInsightsService {
                 incident.getOwner(), critical ? "platform-lead" : "service-owner",
                 critical ? 10 : 30,
                 List.of("确认负责人已收到事故", "同步影响范围与当前状态", "记录下一次更新时间"));
+    }
+
+    public MaintenanceImpact maintenanceImpact(String serviceName, int durationMinutes) {
+        if (durationMinutes < 1 || durationMinutes > 1440) {
+            throw new IllegalArgumentException("维护时长应为 1 到 1440 分钟");
+        }
+        BlastRadius radius = blastRadius(serviceName);
+        boolean approval = radius.impactedServiceCount() >= 2 || durationMinutes > 60;
+        String risk = approval ? "HIGH" : radius.impactedServiceCount() == 1 ? "MEDIUM" : "LOW";
+        return new MaintenanceImpact(radius.serviceName(), durationMinutes, radius.downstream(), risk,
+                approval, List.of("确认维护窗口", "通知受影响服务负责人", "准备回退方案", "维护后验证指标"));
     }
 }

@@ -37,4 +37,11 @@ public class IncidentInsightsController {
     public IncidentInsightsService.EscalationPlan escalation(@PathVariable long id) {
         return service.escalationPlan(id);
     }
+
+    @GetMapping("/maintenance-impact")
+    public IncidentInsightsService.MaintenanceImpact maintenanceImpact(
+            @RequestParam String serviceName,
+            @RequestParam(defaultValue = "30") int durationMinutes) {
+        return service.maintenanceImpact(serviceName, durationMinutes);
+    }
 }

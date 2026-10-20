@@ -41,4 +41,12 @@ class IncidentInsightsServiceTest {
         assertEquals("platform-lead", plan.escalationOwner());
         assertEquals(10, plan.acknowledgeWithinMinutes());
     }
+
+    @Test
+    void checkoutMaintenanceRequiresApproval() {
+        var impact = service.maintenanceImpact("checkout", 30);
+        assertTrue(impact.approvalRequired());
+        assertEquals("HIGH", impact.riskLevel());
+        assertTrue(impact.affectedServices().contains("payment"));
+    }
 }
