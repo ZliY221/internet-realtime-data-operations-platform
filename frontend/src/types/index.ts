@@ -148,3 +148,16 @@ export interface MetricInput {
   collectedAt: string
 }
 
+export interface TrafficFailoverReadiness {
+  primaryHealthy: boolean
+  standbyHealthy: boolean
+  standbyCapacityPercent: number
+  replicationLagSeconds: number
+  requestedTrafficPercent: number
+  errorBudgetHealthy: boolean
+  recommendedTrafficPercent: number
+  status: 'READY' | 'PARTIAL_READY' | 'BLOCKED'
+  blockers: string[]
+  checklist: string[]
+}
+

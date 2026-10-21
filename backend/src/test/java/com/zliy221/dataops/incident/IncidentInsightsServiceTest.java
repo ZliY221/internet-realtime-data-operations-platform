@@ -99,4 +99,21 @@ class IncidentInsightsServiceTest {
         assertEquals(2, summary.impactedServiceCount());
         assertTrue(summary.decisions().getFirst().contains("变更冻结"));
     }
+
+    @Test
+    void failoverReadinessLimitsTrafficToStandbyCapacity() {
+        var result = service.trafficFailoverReadiness(false, true, 60, 10, 80, true);
+        assertEquals("PARTIAL_READY", result.status());
+        assertEquals(60, result.recommendedTrafficPercent());
+        assertTrue(result.blockers().isEmpty());
+        assertEquals(4, result.checklist().size());
+    }
+
+    @Test
+    void failoverReadinessBlocksUnhealthyStandby() {
+        var result = service.trafficFailoverReadiness(false, false, 100, 10, 50, true);
+        assertEquals("BLOCKED", result.status());
+        assertEquals(0, result.recommendedTrafficPercent());
+        assertEquals(1, result.blockers().size());
+    }
 }

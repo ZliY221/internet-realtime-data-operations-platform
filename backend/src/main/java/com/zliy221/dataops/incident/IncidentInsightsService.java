@@ -52,6 +52,11 @@ public class IncidentInsightsService {
     public record ExecutiveSummary(long incidentId, String serviceName, String severity,
                                    String status, int impactedServiceCount,
                                    String owner, String headline, List<String> decisions) {}
+    public record TrafficFailoverReadiness(boolean primaryHealthy, boolean standbyHealthy,
+                                           int standbyCapacityPercent, int replicationLagSeconds,
+                                           int requestedTrafficPercent, boolean errorBudgetHealthy,
+                                           int recommendedTrafficPercent, String status,
+                                           List<String> blockers, List<String> checklist) {}
 
     private static final Map<String, List<String>> DEPENDENCIES = Map.of(
             "gateway", List.of("checkout", "catalog"),
@@ -214,5 +219,33 @@ public class IncidentInsightsService {
         return new ExecutiveSummary(id, incident.getServiceName(), incident.getSeverity().name(),
                 incident.getStatus().name(), radius.impactedServiceCount(), incident.getOwner(),
                 incident.getServiceName() + " 服务事故正在处置", decisions);
+    }
+
+    public TrafficFailoverReadiness trafficFailoverReadiness(
+            boolean primaryHealthy, boolean standbyHealthy, int standbyCapacityPercent,
+            int replicationLagSeconds, int requestedTrafficPercent, boolean errorBudgetHealthy) {
+        if (standbyCapacityPercent < 0 || standbyCapacityPercent > 100
+                || requestedTrafficPercent < 1 || requestedTrafficPercent > 100
+                || replicationLagSeconds < 0) {
+            throw new IllegalArgumentException("流量切换输入无效");
+        }
+        List<String> blockers = new ArrayList<>();
+        if (!standbyHealthy) blockers.add("备用服务健康检查未通过");
+        if (replicationLagSeconds > 60) blockers.add("数据复制延迟超过 60 秒");
+        int recommended = Math.min(requestedTrafficPercent, standbyCapacityPercent);
+        if (!errorBudgetHealthy) recommended = Math.min(recommended, 25);
+        if (!standbyHealthy || replicationLagSeconds > 60) recommended = 0;
+        String status;
+        if (!blockers.isEmpty()) status = "BLOCKED";
+        else if (recommended < requestedTrafficPercent || !errorBudgetHealthy) status = "PARTIAL_READY";
+        else status = "READY";
+        List<String> checklist = new ArrayList<>();
+        checklist.add("确认备用服务健康与容量");
+        checklist.add("核对复制延迟和错误预算");
+        checklist.add(primaryHealthy ? "确认计划切流审批" : "记录主服务故障证据");
+        checklist.add("按建议比例切流并观察核心指标");
+        return new TrafficFailoverReadiness(primaryHealthy, standbyHealthy,
+                standbyCapacityPercent, replicationLagSeconds, requestedTrafficPercent,
+                errorBudgetHealthy, recommended, status, blockers, checklist);
     }
 }

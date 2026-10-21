@@ -362,4 +362,20 @@ class ApiWorkflowIntegrationTest {
                         .param("serviceName", "x".repeat(81)))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void failoverReadinessEndpointReturnsBoundedTrafficPlan() throws Exception {
+        mockMvc.perform(get("/api/v2/incidents/traffic-failover-readiness")
+                        .param("primaryHealthy", "false")
+                        .param("standbyHealthy", "true")
+                        .param("standbyCapacityPercent", "60")
+                        .param("replicationLagSeconds", "10")
+                        .param("requestedTrafficPercent", "80")
+                        .param("errorBudgetHealthy", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PARTIAL_READY"))
+                .andExpect(jsonPath("$.recommendedTrafficPercent").value(60))
+                .andExpect(jsonPath("$.blockers.length()").value(0))
+                .andExpect(jsonPath("$.checklist.length()").value(4));
+    }
 }

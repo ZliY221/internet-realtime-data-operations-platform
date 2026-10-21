@@ -1,4 +1,4 @@
-import type { Alert, AlertBulkOwnerResult, AlertBulkResult, AlertDispatchPreview, AlertDispatchResult, AlertSummary, AlertWorkload, Incident, IncidentSummary, Metric, MetricInput, ServiceHealth, Summary } from '../types'
+import type { Alert, AlertBulkOwnerResult, AlertBulkResult, AlertDispatchPreview, AlertDispatchResult, AlertSummary, AlertWorkload, Incident, IncidentSummary, Metric, MetricInput, ServiceHealth, Summary, TrafficFailoverReadiness } from '../types'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init)
@@ -52,5 +52,13 @@ export const api = {
   updateIncident: (id: number, owner: string | null, status: Incident['status']) => request<Incident>(`/api/v1/incidents/${id}`, {
     method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ owner, status }),
   }),
+  trafficFailoverReadiness: (input: {
+    primaryHealthy: boolean; standbyHealthy: boolean; standbyCapacityPercent: number;
+    replicationLagSeconds: number; requestedTrafficPercent: number; errorBudgetHealthy: boolean;
+  }) => request<TrafficFailoverReadiness>(`/api/v2/incidents/traffic-failover-readiness?${new URLSearchParams({
+    primaryHealthy: String(input.primaryHealthy), standbyHealthy: String(input.standbyHealthy),
+    standbyCapacityPercent: String(input.standbyCapacityPercent), replicationLagSeconds: String(input.replicationLagSeconds),
+    requestedTrafficPercent: String(input.requestedTrafficPercent), errorBudgetHealthy: String(input.errorBudgetHealthy),
+  })}`),
 }
 

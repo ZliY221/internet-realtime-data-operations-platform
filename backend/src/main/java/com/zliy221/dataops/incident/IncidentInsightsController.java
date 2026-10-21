@@ -83,4 +83,17 @@ public class IncidentInsightsController {
     public IncidentInsightsService.ExecutiveSummary executiveSummary(@PathVariable long id) {
         return service.executiveSummary(id);
     }
+
+    @GetMapping("/traffic-failover-readiness")
+    public IncidentInsightsService.TrafficFailoverReadiness trafficFailoverReadiness(
+            @RequestParam boolean primaryHealthy,
+            @RequestParam boolean standbyHealthy,
+            @RequestParam int standbyCapacityPercent,
+            @RequestParam int replicationLagSeconds,
+            @RequestParam int requestedTrafficPercent,
+            @RequestParam boolean errorBudgetHealthy) {
+        return service.trafficFailoverReadiness(primaryHealthy, standbyHealthy,
+                standbyCapacityPercent, replicationLagSeconds, requestedTrafficPercent,
+                errorBudgetHealthy);
+    }
 }
