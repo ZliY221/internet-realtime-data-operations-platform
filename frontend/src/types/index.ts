@@ -176,3 +176,17 @@ export interface ServiceCapacityPlan {
   status: 'CAPACITY_LIMIT' | 'ACTION_REQUIRED' | 'STABLE'
 }
 
+export interface CanaryReleaseDecision {
+  baselineErrorRatePercent: number
+  canaryErrorRatePercent: number
+  baselineP95LatencyMs: number
+  canaryP95LatencyMs: number
+  canarySampleSize: number
+  minimumSampleSize: number
+  errorRateIncreasePoints: number
+  latencyIncreasePercent: number
+  action: 'CONTINUE_OBSERVATION' | 'ROLLBACK' | 'PROMOTE'
+  status: 'INSUFFICIENT_SAMPLE' | 'ROLLBACK_RECOMMENDED' | 'PROMOTE_READY'
+  blockers: string[]
+}
+

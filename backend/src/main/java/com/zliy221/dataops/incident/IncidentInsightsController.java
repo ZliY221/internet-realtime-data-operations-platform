@@ -109,4 +109,19 @@ public class IncidentInsightsController {
                 requestsPerSecondPerInstance, targetUtilizationPercent,
                 minimumInstances, maximumInstances);
     }
+
+    @GetMapping("/canary-release-decision")
+    public IncidentInsightsService.CanaryReleaseDecision canaryReleaseDecision(
+            @RequestParam double baselineErrorRatePercent,
+            @RequestParam double canaryErrorRatePercent,
+            @RequestParam double baselineP95LatencyMs,
+            @RequestParam double canaryP95LatencyMs,
+            @RequestParam long canarySampleSize,
+            @RequestParam(defaultValue = "1000") long minimumSampleSize,
+            @RequestParam(defaultValue = "0.2") double maximumErrorIncreasePoints,
+            @RequestParam(defaultValue = "20") double maximumLatencyIncreasePercent) {
+        return service.canaryReleaseDecision(baselineErrorRatePercent, canaryErrorRatePercent,
+                baselineP95LatencyMs, canaryP95LatencyMs, canarySampleSize,
+                minimumSampleSize, maximumErrorIncreasePoints, maximumLatencyIncreasePercent);
+    }
 }

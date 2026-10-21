@@ -63,6 +63,15 @@ public class IncidentInsightsService {
                                       int maximumInstances, double currentUtilizationPercent,
                                       int requiredInstances, int recommendedInstances,
                                       int instanceDelta, String action, String status) {}
+    public record CanaryReleaseDecision(double baselineErrorRatePercent,
+                                        double canaryErrorRatePercent,
+                                        double baselineP95LatencyMs,
+                                        double canaryP95LatencyMs,
+                                        long canarySampleSize, long minimumSampleSize,
+                                        double errorRateIncreasePoints,
+                                        double latencyIncreasePercent,
+                                        String action, String status,
+                                        List<String> blockers) {}
 
     private static final Map<String, List<String>> DEPENDENCIES = Map.of(
             "gateway", List.of("checkout", "catalog"),
@@ -279,5 +288,39 @@ public class IncidentInsightsService {
                 requestsPerSecondPerInstance, targetUtilizationPercent,
                 minimumInstances, maximumInstances, utilization, required,
                 recommended, delta, action, status);
+    }
+
+    public CanaryReleaseDecision canaryReleaseDecision(
+            double baselineErrorRatePercent, double canaryErrorRatePercent,
+            double baselineP95LatencyMs, double canaryP95LatencyMs,
+            long canarySampleSize, long minimumSampleSize,
+            double maximumErrorIncreasePoints, double maximumLatencyIncreasePercent) {
+        if (baselineErrorRatePercent < 0 || canaryErrorRatePercent < 0
+                || baselineP95LatencyMs <= 0 || canaryP95LatencyMs <= 0
+                || canarySampleSize < 0 || minimumSampleSize < 1
+                || maximumErrorIncreasePoints < 0 || maximumLatencyIncreasePercent < 0) {
+            throw new IllegalArgumentException("灰度发布指标输入无效");
+        }
+        double errorIncrease = canaryErrorRatePercent - baselineErrorRatePercent;
+        double latencyIncrease = (canaryP95LatencyMs - baselineP95LatencyMs)
+                / baselineP95LatencyMs * 100.0;
+        List<String> blockers = new ArrayList<>();
+        if (errorIncrease > maximumErrorIncreasePoints) blockers.add("灰度错误率增幅超过门槛");
+        if (latencyIncrease > maximumLatencyIncreasePercent) blockers.add("灰度 P95 延迟增幅超过门槛");
+        String action;
+        String status;
+        if (canarySampleSize < minimumSampleSize) {
+            action = "CONTINUE_OBSERVATION";
+            status = "INSUFFICIENT_SAMPLE";
+        } else if (!blockers.isEmpty()) {
+            action = "ROLLBACK";
+            status = "ROLLBACK_RECOMMENDED";
+        } else {
+            action = "PROMOTE";
+            status = "PROMOTE_READY";
+        }
+        return new CanaryReleaseDecision(baselineErrorRatePercent, canaryErrorRatePercent,
+                baselineP95LatencyMs, canaryP95LatencyMs, canarySampleSize,
+                minimumSampleSize, errorIncrease, latencyIncrease, action, status, blockers);
     }
 }

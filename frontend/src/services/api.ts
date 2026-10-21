@@ -1,4 +1,4 @@
-import type { Alert, AlertBulkOwnerResult, AlertBulkResult, AlertDispatchPreview, AlertDispatchResult, AlertSummary, AlertWorkload, Incident, IncidentSummary, Metric, MetricInput, ServiceCapacityPlan, ServiceHealth, Summary, TrafficFailoverReadiness } from '../types'
+import type { Alert, AlertBulkOwnerResult, AlertBulkResult, AlertDispatchPreview, AlertDispatchResult, AlertSummary, AlertWorkload, CanaryReleaseDecision, Incident, IncidentSummary, Metric, MetricInput, ServiceCapacityPlan, ServiceHealth, Summary, TrafficFailoverReadiness } from '../types'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init)
@@ -71,6 +71,21 @@ export const api = {
     targetUtilizationPercent: String(input.targetUtilizationPercent ?? 65),
     minimumInstances: String(input.minimumInstances ?? 2),
     maximumInstances: String(input.maximumInstances ?? 50),
+  })}`),
+  canaryReleaseDecision: (input: {
+    baselineErrorRatePercent: number; canaryErrorRatePercent: number;
+    baselineP95LatencyMs: number; canaryP95LatencyMs: number;
+    canarySampleSize: number; minimumSampleSize?: number;
+    maximumErrorIncreasePoints?: number; maximumLatencyIncreasePercent?: number;
+  }) => request<CanaryReleaseDecision>(`/api/v2/incidents/canary-release-decision?${new URLSearchParams({
+    baselineErrorRatePercent: String(input.baselineErrorRatePercent),
+    canaryErrorRatePercent: String(input.canaryErrorRatePercent),
+    baselineP95LatencyMs: String(input.baselineP95LatencyMs),
+    canaryP95LatencyMs: String(input.canaryP95LatencyMs),
+    canarySampleSize: String(input.canarySampleSize),
+    minimumSampleSize: String(input.minimumSampleSize ?? 1000),
+    maximumErrorIncreasePoints: String(input.maximumErrorIncreasePoints ?? 0.2),
+    maximumLatencyIncreasePercent: String(input.maximumLatencyIncreasePercent ?? 20),
   })}`),
 }
 

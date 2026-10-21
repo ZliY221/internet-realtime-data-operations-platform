@@ -393,4 +393,18 @@ class ApiWorkflowIntegrationTest {
                 .andExpect(jsonPath("$.recommendedInstances").value(8))
                 .andExpect(jsonPath("$.status").value("ACTION_REQUIRED"));
     }
+
+    @Test
+    void canaryReleaseEndpointReturnsRollbackDecision() throws Exception {
+        mockMvc.perform(get("/api/v2/incidents/canary-release-decision")
+                        .param("baselineErrorRatePercent", "0.4")
+                        .param("canaryErrorRatePercent", "0.9")
+                        .param("baselineP95LatencyMs", "200")
+                        .param("canaryP95LatencyMs", "270")
+                        .param("canarySampleSize", "5000"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.action").value("ROLLBACK"))
+                .andExpect(jsonPath("$.status").value("ROLLBACK_RECOMMENDED"))
+                .andExpect(jsonPath("$.blockers.length()").value(2));
+    }
 }

@@ -133,4 +133,21 @@ class IncidentInsightsServiceTest {
         assertEquals(20, result.recommendedInstances());
         assertTrue(result.requiredInstances() > result.maximumInstances());
     }
+
+    @Test
+    void canaryReleaseDecisionRecommendsRollbackOnMetricRegression() {
+        var result = service.canaryReleaseDecision(
+                0.4, 0.9, 200, 270, 5000, 1000, 0.2, 20);
+        assertEquals("ROLLBACK", result.action());
+        assertEquals("ROLLBACK_RECOMMENDED", result.status());
+        assertEquals(2, result.blockers().size());
+    }
+
+    @Test
+    void canaryReleaseDecisionWaitsForEnoughSamples() {
+        var result = service.canaryReleaseDecision(
+                0.4, 0.4, 200, 190, 200, 1000, 0.2, 20);
+        assertEquals("CONTINUE_OBSERVATION", result.action());
+        assertEquals("INSUFFICIENT_SAMPLE", result.status());
+    }
 }
