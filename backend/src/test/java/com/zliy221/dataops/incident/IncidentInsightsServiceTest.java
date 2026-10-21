@@ -150,4 +150,22 @@ class IncidentInsightsServiceTest {
         assertEquals("CONTINUE_OBSERVATION", result.action());
         assertEquals("INSUFFICIENT_SAMPLE", result.status());
     }
+
+    @Test
+    void stagedReleasePlanBuildsProgressiveTrafficGates() {
+        var result = service.stagedReleasePlan(100, true, true, 15);
+        assertEquals("READY", result.status());
+        assertEquals(List.of(5, 25, 50, 100),
+                result.stages().stream().map(IncidentInsightsService.ReleaseStage::trafficPercent).toList());
+        assertEquals("FINAL_APPROVAL", result.stages().getLast().requiredGate());
+        assertFalse(result.automaticTrafficChangeStarted());
+    }
+
+    @Test
+    void stagedReleasePlanBlocksWithoutRollbackReadiness() {
+        var result = service.stagedReleasePlan(50, true, false, 15);
+        assertEquals("BLOCKED", result.status());
+        assertTrue(result.stages().isEmpty());
+        assertEquals(1, result.blockers().size());
+    }
 }

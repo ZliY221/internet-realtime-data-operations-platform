@@ -190,3 +190,18 @@ export interface CanaryReleaseDecision {
   blockers: string[]
 }
 
+export interface StagedReleasePlan {
+  requestedFinalTrafficPercent: number
+  errorBudgetHealthy: boolean
+  rollbackReady: boolean
+  minimumObservationMinutes: number
+  status: 'READY' | 'BLOCKED'
+  blockers: string[]
+  stages: Array<{
+    trafficPercent: number
+    observationMinutes: number
+    requiredGate: 'CANARY_METRICS_PASS' | 'FINAL_APPROVAL'
+  }>
+  automaticTrafficChangeStarted: boolean
+}
+

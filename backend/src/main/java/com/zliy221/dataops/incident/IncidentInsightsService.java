@@ -72,6 +72,13 @@ public class IncidentInsightsService {
                                         double latencyIncreasePercent,
                                         String action, String status,
                                         List<String> blockers) {}
+    public record ReleaseStage(int trafficPercent, int observationMinutes,
+                               String requiredGate) {}
+    public record StagedReleasePlan(int requestedFinalTrafficPercent,
+                                    boolean errorBudgetHealthy, boolean rollbackReady,
+                                    int minimumObservationMinutes, String status,
+                                    List<String> blockers, List<ReleaseStage> stages,
+                                    boolean automaticTrafficChangeStarted) {}
 
     private static final Map<String, List<String>> DEPENDENCIES = Map.of(
             "gateway", List.of("checkout", "catalog"),
@@ -322,5 +329,32 @@ public class IncidentInsightsService {
         return new CanaryReleaseDecision(baselineErrorRatePercent, canaryErrorRatePercent,
                 baselineP95LatencyMs, canaryP95LatencyMs, canarySampleSize,
                 minimumSampleSize, errorIncrease, latencyIncrease, action, status, blockers);
+    }
+
+    public StagedReleasePlan stagedReleasePlan(
+            int requestedFinalTrafficPercent, boolean errorBudgetHealthy,
+            boolean rollbackReady, int minimumObservationMinutes) {
+        if (requestedFinalTrafficPercent < 1 || requestedFinalTrafficPercent > 100
+                || minimumObservationMinutes < 5 || minimumObservationMinutes > 120) {
+            throw new IllegalArgumentException("分阶段发布输入无效");
+        }
+        List<String> blockers = new ArrayList<>();
+        if (!errorBudgetHealthy) blockers.add("错误预算状态不允许扩大灰度流量");
+        if (!rollbackReady) blockers.add("回滚方案尚未就绪");
+        List<ReleaseStage> stages = new ArrayList<>();
+        if (blockers.isEmpty()) {
+            for (int traffic : List.of(5, 25, 50, 100)) {
+                if (traffic < requestedFinalTrafficPercent) {
+                    stages.add(new ReleaseStage(traffic, minimumObservationMinutes,
+                            "CANARY_METRICS_PASS"));
+                }
+            }
+            stages.add(new ReleaseStage(requestedFinalTrafficPercent,
+                    minimumObservationMinutes,
+                    requestedFinalTrafficPercent == 100 ? "FINAL_APPROVAL" : "CANARY_METRICS_PASS"));
+        }
+        return new StagedReleasePlan(requestedFinalTrafficPercent, errorBudgetHealthy,
+                rollbackReady, minimumObservationMinutes,
+                blockers.isEmpty() ? "READY" : "BLOCKED", blockers, stages, false);
     }
 }

@@ -407,4 +407,18 @@ class ApiWorkflowIntegrationTest {
                 .andExpect(jsonPath("$.status").value("ROLLBACK_RECOMMENDED"))
                 .andExpect(jsonPath("$.blockers.length()").value(2));
     }
+
+    @Test
+    void stagedReleaseEndpointReturnsProgressivePlan() throws Exception {
+        mockMvc.perform(get("/api/v2/incidents/staged-release-plan")
+                        .param("requestedFinalTrafficPercent", "100")
+                        .param("errorBudgetHealthy", "true")
+                        .param("rollbackReady", "true")
+                        .param("minimumObservationMinutes", "15"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("READY"))
+                .andExpect(jsonPath("$.stages.length()").value(4))
+                .andExpect(jsonPath("$.stages[3].requiredGate").value("FINAL_APPROVAL"))
+                .andExpect(jsonPath("$.automaticTrafficChangeStarted").value(false));
+    }
 }

@@ -1,4 +1,4 @@
-import type { Alert, AlertBulkOwnerResult, AlertBulkResult, AlertDispatchPreview, AlertDispatchResult, AlertSummary, AlertWorkload, CanaryReleaseDecision, Incident, IncidentSummary, Metric, MetricInput, ServiceCapacityPlan, ServiceHealth, Summary, TrafficFailoverReadiness } from '../types'
+import type { Alert, AlertBulkOwnerResult, AlertBulkResult, AlertDispatchPreview, AlertDispatchResult, AlertSummary, AlertWorkload, CanaryReleaseDecision, Incident, IncidentSummary, Metric, MetricInput, ServiceCapacityPlan, ServiceHealth, StagedReleasePlan, Summary, TrafficFailoverReadiness } from '../types'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init)
@@ -86,6 +86,15 @@ export const api = {
     minimumSampleSize: String(input.minimumSampleSize ?? 1000),
     maximumErrorIncreasePoints: String(input.maximumErrorIncreasePoints ?? 0.2),
     maximumLatencyIncreasePercent: String(input.maximumLatencyIncreasePercent ?? 20),
+  })}`),
+  stagedReleasePlan: (input: {
+    requestedFinalTrafficPercent: number; errorBudgetHealthy: boolean;
+    rollbackReady: boolean; minimumObservationMinutes?: number;
+  }) => request<StagedReleasePlan>(`/api/v2/incidents/staged-release-plan?${new URLSearchParams({
+    requestedFinalTrafficPercent: String(input.requestedFinalTrafficPercent),
+    errorBudgetHealthy: String(input.errorBudgetHealthy),
+    rollbackReady: String(input.rollbackReady),
+    minimumObservationMinutes: String(input.minimumObservationMinutes ?? 15),
   })}`),
 }
 

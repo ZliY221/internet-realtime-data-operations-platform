@@ -124,4 +124,14 @@ public class IncidentInsightsController {
                 baselineP95LatencyMs, canaryP95LatencyMs, canarySampleSize,
                 minimumSampleSize, maximumErrorIncreasePoints, maximumLatencyIncreasePercent);
     }
+
+    @GetMapping("/staged-release-plan")
+    public IncidentInsightsService.StagedReleasePlan stagedReleasePlan(
+            @RequestParam int requestedFinalTrafficPercent,
+            @RequestParam boolean errorBudgetHealthy,
+            @RequestParam boolean rollbackReady,
+            @RequestParam(defaultValue = "15") int minimumObservationMinutes) {
+        return service.stagedReleasePlan(requestedFinalTrafficPercent, errorBudgetHealthy,
+                rollbackReady, minimumObservationMinutes);
+    }
 }
