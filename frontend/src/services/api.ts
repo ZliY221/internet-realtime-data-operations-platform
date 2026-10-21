@@ -1,4 +1,4 @@
-import type { Alert, AlertBulkOwnerResult, AlertBulkResult, AlertDispatchPreview, AlertDispatchResult, AlertSummary, AlertWorkload, Incident, IncidentSummary, Metric, MetricInput, ServiceHealth, Summary, TrafficFailoverReadiness } from '../types'
+import type { Alert, AlertBulkOwnerResult, AlertBulkResult, AlertDispatchPreview, AlertDispatchResult, AlertSummary, AlertWorkload, Incident, IncidentSummary, Metric, MetricInput, ServiceCapacityPlan, ServiceHealth, Summary, TrafficFailoverReadiness } from '../types'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init)
@@ -59,6 +59,18 @@ export const api = {
     primaryHealthy: String(input.primaryHealthy), standbyHealthy: String(input.standbyHealthy),
     standbyCapacityPercent: String(input.standbyCapacityPercent), replicationLagSeconds: String(input.replicationLagSeconds),
     requestedTrafficPercent: String(input.requestedTrafficPercent), errorBudgetHealthy: String(input.errorBudgetHealthy),
+  })}`),
+  serviceCapacityPlan: (input: {
+    currentRequestsPerSecond: number; currentInstances: number;
+    requestsPerSecondPerInstance: number; targetUtilizationPercent?: number;
+    minimumInstances?: number; maximumInstances?: number;
+  }) => request<ServiceCapacityPlan>(`/api/v2/incidents/service-capacity-plan?${new URLSearchParams({
+    currentRequestsPerSecond: String(input.currentRequestsPerSecond),
+    currentInstances: String(input.currentInstances),
+    requestsPerSecondPerInstance: String(input.requestsPerSecondPerInstance),
+    targetUtilizationPercent: String(input.targetUtilizationPercent ?? 65),
+    minimumInstances: String(input.minimumInstances ?? 2),
+    maximumInstances: String(input.maximumInstances ?? 50),
   })}`),
 }
 

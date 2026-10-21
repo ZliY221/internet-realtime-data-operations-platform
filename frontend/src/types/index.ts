@@ -161,3 +161,18 @@ export interface TrafficFailoverReadiness {
   checklist: string[]
 }
 
+export interface ServiceCapacityPlan {
+  currentRequestsPerSecond: number
+  currentInstances: number
+  requestsPerSecondPerInstance: number
+  targetUtilizationPercent: number
+  minimumInstances: number
+  maximumInstances: number
+  currentUtilizationPercent: number
+  requiredInstances: number
+  recommendedInstances: number
+  instanceDelta: number
+  action: 'SCALE_OUT' | 'SCALE_IN' | 'HOLD'
+  status: 'CAPACITY_LIMIT' | 'ACTION_REQUIRED' | 'STABLE'
+}
+

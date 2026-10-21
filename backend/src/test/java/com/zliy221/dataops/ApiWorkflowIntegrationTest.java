@@ -378,4 +378,19 @@ class ApiWorkflowIntegrationTest {
                 .andExpect(jsonPath("$.blockers.length()").value(0))
                 .andExpect(jsonPath("$.checklist.length()").value(4));
     }
+
+    @Test
+    void serviceCapacityEndpointReturnsScalePlan() throws Exception {
+        mockMvc.perform(get("/api/v2/incidents/service-capacity-plan")
+                        .param("currentRequestsPerSecond", "900")
+                        .param("currentInstances", "5")
+                        .param("requestsPerSecondPerInstance", "200")
+                        .param("targetUtilizationPercent", "60")
+                        .param("minimumInstances", "2")
+                        .param("maximumInstances", "20"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.action").value("SCALE_OUT"))
+                .andExpect(jsonPath("$.recommendedInstances").value(8))
+                .andExpect(jsonPath("$.status").value("ACTION_REQUIRED"));
+    }
 }

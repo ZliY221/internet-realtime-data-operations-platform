@@ -116,4 +116,21 @@ class IncidentInsightsServiceTest {
         assertEquals(0, result.recommendedTrafficPercent());
         assertEquals(1, result.blockers().size());
     }
+
+    @Test
+    void serviceCapacityPlanRecommendsScaleOutWithHeadroom() {
+        var result = service.serviceCapacityPlan(900, 5, 200, 60, 2, 20);
+        assertEquals("SCALE_OUT", result.action());
+        assertEquals(8, result.recommendedInstances());
+        assertEquals(3, result.instanceDelta());
+        assertEquals("ACTION_REQUIRED", result.status());
+    }
+
+    @Test
+    void serviceCapacityPlanExposesConfiguredLimit() {
+        var result = service.serviceCapacityPlan(5000, 10, 200, 60, 2, 20);
+        assertEquals("CAPACITY_LIMIT", result.status());
+        assertEquals(20, result.recommendedInstances());
+        assertTrue(result.requiredInstances() > result.maximumInstances());
+    }
 }

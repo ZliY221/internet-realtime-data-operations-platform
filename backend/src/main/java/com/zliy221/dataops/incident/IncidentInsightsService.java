@@ -57,6 +57,12 @@ public class IncidentInsightsService {
                                            int requestedTrafficPercent, boolean errorBudgetHealthy,
                                            int recommendedTrafficPercent, String status,
                                            List<String> blockers, List<String> checklist) {}
+    public record ServiceCapacityPlan(double currentRequestsPerSecond, int currentInstances,
+                                      double requestsPerSecondPerInstance,
+                                      int targetUtilizationPercent, int minimumInstances,
+                                      int maximumInstances, double currentUtilizationPercent,
+                                      int requiredInstances, int recommendedInstances,
+                                      int instanceDelta, String action, String status) {}
 
     private static final Map<String, List<String>> DEPENDENCIES = Map.of(
             "gateway", List.of("checkout", "catalog"),
@@ -247,5 +253,31 @@ public class IncidentInsightsService {
         return new TrafficFailoverReadiness(primaryHealthy, standbyHealthy,
                 standbyCapacityPercent, replicationLagSeconds, requestedTrafficPercent,
                 errorBudgetHealthy, recommended, status, blockers, checklist);
+    }
+
+    public ServiceCapacityPlan serviceCapacityPlan(
+            double currentRequestsPerSecond, int currentInstances,
+            double requestsPerSecondPerInstance, int targetUtilizationPercent,
+            int minimumInstances, int maximumInstances) {
+        if (currentRequestsPerSecond < 0 || currentInstances < 1
+                || requestsPerSecondPerInstance <= 0
+                || targetUtilizationPercent < 10 || targetUtilizationPercent > 90
+                || minimumInstances < 1 || maximumInstances < minimumInstances) {
+            throw new IllegalArgumentException("服务容量输入无效");
+        }
+        double safeCapacityPerInstance = requestsPerSecondPerInstance * targetUtilizationPercent / 100.0;
+        int required = Math.max(minimumInstances,
+                (int) Math.ceil(currentRequestsPerSecond / safeCapacityPerInstance));
+        int recommended = Math.min(maximumInstances, required);
+        double utilization = currentRequestsPerSecond
+                / (currentInstances * requestsPerSecondPerInstance) * 100.0;
+        int delta = recommended - currentInstances;
+        String action = delta > 0 ? "SCALE_OUT" : delta < 0 ? "SCALE_IN" : "HOLD";
+        String status = required > maximumInstances ? "CAPACITY_LIMIT"
+                : action.equals("HOLD") ? "STABLE" : "ACTION_REQUIRED";
+        return new ServiceCapacityPlan(currentRequestsPerSecond, currentInstances,
+                requestsPerSecondPerInstance, targetUtilizationPercent,
+                minimumInstances, maximumInstances, utilization, required,
+                recommended, delta, action, status);
     }
 }

@@ -96,4 +96,17 @@ public class IncidentInsightsController {
                 standbyCapacityPercent, replicationLagSeconds, requestedTrafficPercent,
                 errorBudgetHealthy);
     }
+
+    @GetMapping("/service-capacity-plan")
+    public IncidentInsightsService.ServiceCapacityPlan serviceCapacityPlan(
+            @RequestParam double currentRequestsPerSecond,
+            @RequestParam int currentInstances,
+            @RequestParam double requestsPerSecondPerInstance,
+            @RequestParam(defaultValue = "65") int targetUtilizationPercent,
+            @RequestParam(defaultValue = "2") int minimumInstances,
+            @RequestParam(defaultValue = "50") int maximumInstances) {
+        return service.serviceCapacityPlan(currentRequestsPerSecond, currentInstances,
+                requestsPerSecondPerInstance, targetUtilizationPercent,
+                minimumInstances, maximumInstances);
+    }
 }
