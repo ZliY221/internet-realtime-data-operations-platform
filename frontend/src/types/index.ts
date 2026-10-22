@@ -205,3 +205,22 @@ export interface StagedReleasePlan {
   automaticTrafficChangeStarted: boolean
 }
 
+export interface ReleaseWindowRequest {
+  changeId: string
+  serviceName: string
+  requestedStartMinute: number
+  durationMinutes: number
+  priority: number
+}
+
+export interface ReleaseWindowCoordination {
+  status: 'READY' | 'COORDINATED'
+  assignments: Array<ReleaseWindowRequest & {
+    coordinatedStartMinute: number
+    delayedMinutes: number
+    sharedServices: string[]
+    status: 'ON_TIME' | 'RESCHEDULED'
+  }>
+  automaticReleaseStarted: boolean
+}
+

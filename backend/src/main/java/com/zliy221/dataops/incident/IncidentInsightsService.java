@@ -6,8 +6,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.time.temporal.ChronoUnit;
 
 @Service
@@ -79,6 +81,16 @@ public class IncidentInsightsService {
                                     int minimumObservationMinutes, String status,
                                     List<String> blockers, List<ReleaseStage> stages,
                                     boolean automaticTrafficChangeStarted) {}
+    public record ReleaseWindowRequest(String changeId, String serviceName,
+                                       int requestedStartMinute, int durationMinutes,
+                                       int priority) {}
+    public record ReleaseWindowAssignment(String changeId, String serviceName,
+                                          int requestedStartMinute, int coordinatedStartMinute,
+                                          int durationMinutes, int delayedMinutes,
+                                          List<String> sharedServices, String status) {}
+    public record ReleaseWindowCoordination(String status,
+                                            List<ReleaseWindowAssignment> assignments,
+                                            boolean automaticReleaseStarted) {}
 
     private static final Map<String, List<String>> DEPENDENCIES = Map.of(
             "gateway", List.of("checkout", "catalog"),
@@ -356,5 +368,73 @@ public class IncidentInsightsService {
         return new StagedReleasePlan(requestedFinalTrafficPercent, errorBudgetHealthy,
                 rollbackReady, minimumObservationMinutes,
                 blockers.isEmpty() ? "READY" : "BLOCKED", blockers, stages, false);
+    }
+
+    public ReleaseWindowCoordination coordinateReleaseWindows(List<ReleaseWindowRequest> requests) {
+        if (requests == null || requests.isEmpty()) {
+            throw new IllegalArgumentException("发布窗口请求不能为空");
+        }
+        Set<String> changeIds = new HashSet<>();
+        for (ReleaseWindowRequest request : requests) {
+            if (request == null || request.changeId() == null || request.changeId().isBlank()
+                    || !request.changeId().equals(request.changeId().trim())
+                    || !changeIds.add(request.changeId())
+                    || request.requestedStartMinute() < 0 || request.requestedStartMinute() > 10080
+                    || request.durationMinutes() < 1 || request.durationMinutes() > 1440
+                    || request.priority() < 1 || request.priority() > 100) {
+                throw new IllegalArgumentException("发布窗口输入无效");
+            }
+            blastRadius(request.serviceName());
+        }
+
+        List<ReleaseWindowRequest> ordered = requests.stream()
+                .sorted((left, right) -> {
+                    int priority = Integer.compare(right.priority(), left.priority());
+                    if (priority != 0) return priority;
+                    int start = Integer.compare(left.requestedStartMinute(), right.requestedStartMinute());
+                    return start != 0 ? start : left.changeId().compareTo(right.changeId());
+                }).toList();
+        List<ReleaseWindowAssignment> assignments = new ArrayList<>();
+        Map<String, Set<String>> affectedByChange = new java.util.HashMap<>();
+        for (ReleaseWindowRequest request : ordered) {
+            Set<String> affected = affectedServices(request.serviceName());
+            affectedByChange.put(request.changeId(), affected);
+            int start = request.requestedStartMinute();
+            Set<String> shared = new HashSet<>();
+            boolean moved;
+            do {
+                moved = false;
+                for (ReleaseWindowAssignment existing : assignments) {
+                    Set<String> intersection = new HashSet<>(affected);
+                    intersection.retainAll(affectedByChange.get(existing.changeId()));
+                    int existingEnd = existing.coordinatedStartMinute() + existing.durationMinutes();
+                    int requestedEnd = start + request.durationMinutes();
+                    if (!intersection.isEmpty() && start < existingEnd
+                            && requestedEnd > existing.coordinatedStartMinute()) {
+                        shared.addAll(intersection);
+                        start = existingEnd;
+                        moved = true;
+                    }
+                }
+            } while (moved);
+            int delay = start - request.requestedStartMinute();
+            assignments.add(new ReleaseWindowAssignment(request.changeId(), request.serviceName(),
+                    request.requestedStartMinute(), start, request.durationMinutes(), delay,
+                    shared.stream().sorted().toList(), delay == 0 ? "ON_TIME" : "RESCHEDULED"));
+        }
+        boolean delayed = assignments.stream().anyMatch(item -> item.delayedMinutes() > 0);
+        return new ReleaseWindowCoordination(delayed ? "COORDINATED" : "READY",
+                assignments, false);
+    }
+
+    private Set<String> affectedServices(String serviceName) {
+        Set<String> affected = new HashSet<>();
+        List<String> pending = new ArrayList<>();
+        pending.add(serviceName.trim());
+        while (!pending.isEmpty()) {
+            String current = pending.removeFirst();
+            if (affected.add(current)) pending.addAll(DEPENDENCIES.getOrDefault(current, List.of()));
+        }
+        return affected;
     }
 }

@@ -168,4 +168,30 @@ class IncidentInsightsServiceTest {
         assertTrue(result.stages().isEmpty());
         assertEquals(1, result.blockers().size());
     }
+
+    @Test
+    void releaseWindowCoordinationMovesLowerPrioritySharedDependency() {
+        var result = service.coordinateReleaseWindows(List.of(
+                new IncidentInsightsService.ReleaseWindowRequest("checkout-42", "checkout", 60, 30, 90),
+                new IncidentInsightsService.ReleaseWindowRequest("payment-18", "payment", 70, 20, 60),
+                new IncidentInsightsService.ReleaseWindowRequest("search-7", "search", 70, 20, 50)
+        ));
+        assertEquals("COORDINATED", result.status());
+        var payment = result.assignments().stream()
+                .filter(item -> item.changeId().equals("payment-18")).findFirst().orElseThrow();
+        assertEquals(90, payment.coordinatedStartMinute());
+        assertTrue(payment.sharedServices().contains("payment"));
+        var search = result.assignments().stream()
+                .filter(item -> item.changeId().equals("search-7")).findFirst().orElseThrow();
+        assertEquals("ON_TIME", search.status());
+        assertFalse(result.automaticReleaseStarted());
+    }
+
+    @Test
+    void releaseWindowCoordinationRejectsDuplicateChangeId() {
+        assertThrows(IllegalArgumentException.class, () -> service.coordinateReleaseWindows(List.of(
+                new IncidentInsightsService.ReleaseWindowRequest("same", "checkout", 60, 30, 90),
+                new IncidentInsightsService.ReleaseWindowRequest("same", "payment", 70, 20, 60)
+        )));
+    }
 }

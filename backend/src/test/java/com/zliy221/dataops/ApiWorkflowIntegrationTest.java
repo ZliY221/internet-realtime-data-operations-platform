@@ -421,4 +421,22 @@ class ApiWorkflowIntegrationTest {
                 .andExpect(jsonPath("$.stages[3].requiredGate").value("FINAL_APPROVAL"))
                 .andExpect(jsonPath("$.automaticTrafficChangeStarted").value(false));
     }
+
+    @Test
+    void releaseWindowCoordinationEndpointReschedulesSharedDependency() throws Exception {
+        mockMvc.perform(post("/api/v3/incidents/release-window-coordination")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                [
+                                  {"changeId":"checkout-42","serviceName":"checkout","requestedStartMinute":60,"durationMinutes":30,"priority":90},
+                                  {"changeId":"payment-18","serviceName":"payment","requestedStartMinute":70,"durationMinutes":20,"priority":60}
+                                ]
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("COORDINATED"))
+                .andExpect(jsonPath("$.assignments[1].coordinatedStartMinute").value(90))
+                .andExpect(jsonPath("$.assignments[1].sharedServices.length()").value(2))
+                .andExpect(jsonPath("$.assignments[1].sharedServices[1]").value("payment"))
+                .andExpect(jsonPath("$.automaticReleaseStarted").value(false));
+    }
 }
