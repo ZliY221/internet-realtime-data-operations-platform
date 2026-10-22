@@ -194,4 +194,27 @@ class IncidentInsightsServiceTest {
                 new IncidentInsightsService.ReleaseWindowRequest("same", "payment", 70, 20, 60)
         )));
     }
+
+    @Test
+    void coordinatedRollbackOrdersDependentsBeforeDependencies() {
+        var result = service.planCoordinatedRollback(List.of(
+                new IncidentInsightsService.RollbackServiceRequest("payment", true),
+                new IncidentInsightsService.RollbackServiceRequest("gateway", true),
+                new IncidentInsightsService.RollbackServiceRequest("checkout", true)
+        ));
+        assertEquals("READY", result.status());
+        assertEquals(List.of("gateway", "checkout", "payment"),
+                result.steps().stream().map(IncidentInsightsService.RollbackStep::serviceName).toList());
+        assertFalse(result.automaticRollbackStarted());
+    }
+
+    @Test
+    void coordinatedRollbackBlocksWhenArtifactIsNotReady() {
+        var result = service.planCoordinatedRollback(List.of(
+                new IncidentInsightsService.RollbackServiceRequest("checkout", false)
+        ));
+        assertEquals("BLOCKED", result.status());
+        assertTrue(result.steps().isEmpty());
+        assertEquals(1, result.blockers().size());
+    }
 }

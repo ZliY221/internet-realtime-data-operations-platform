@@ -42,3 +42,7 @@
 - `GET /api/v1/incidents/summary`：查询事故状态与严重度汇总。
 - `PATCH /api/v1/incidents/{id}`：分派负责人并推进到 `INVESTIGATING` 或 `RESOLVED`。
 
+# v3.2 协同回滚计划
+
+`POST /api/v3/incidents/coordinated-rollback-plan` 接收服务名称和回滚工件就绪状态，返回依赖感知的回滚步骤、每步验证门禁和阻断原因。接口只生成计划，不自动执行回滚。
+

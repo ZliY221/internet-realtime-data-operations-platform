@@ -21,4 +21,10 @@ public class ReleaseCoordinationController {
             @RequestBody List<IncidentInsightsService.ReleaseWindowRequest> requests) {
         return service.coordinateReleaseWindows(requests);
     }
+
+    @PostMapping("/coordinated-rollback-plan")
+    public IncidentInsightsService.CoordinatedRollbackPlan planCoordinatedRollback(
+            @RequestBody List<IncidentInsightsService.RollbackServiceRequest> requests) {
+        return service.planCoordinatedRollback(requests);
+    }
 }

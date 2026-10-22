@@ -1,4 +1,4 @@
-import type { Alert, AlertBulkOwnerResult, AlertBulkResult, AlertDispatchPreview, AlertDispatchResult, AlertSummary, AlertWorkload, CanaryReleaseDecision, Incident, IncidentSummary, Metric, MetricInput, ReleaseWindowCoordination, ReleaseWindowRequest, ServiceCapacityPlan, ServiceHealth, StagedReleasePlan, Summary, TrafficFailoverReadiness } from '../types'
+import type { Alert, AlertBulkOwnerResult, AlertBulkResult, AlertDispatchPreview, AlertDispatchResult, AlertSummary, AlertWorkload, CanaryReleaseDecision, CoordinatedRollbackPlan, Incident, IncidentSummary, Metric, MetricInput, ReleaseWindowCoordination, ReleaseWindowRequest, RollbackServiceRequest, ServiceCapacityPlan, ServiceHealth, StagedReleasePlan, Summary, TrafficFailoverReadiness } from '../types'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init)
@@ -98,6 +98,10 @@ export const api = {
   })}`),
   coordinateReleaseWindows: (input: ReleaseWindowRequest[]) =>
     request<ReleaseWindowCoordination>('/api/v3/incidents/release-window-coordination', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
+    }),
+  coordinatedRollbackPlan: (input: RollbackServiceRequest[]) =>
+    request<CoordinatedRollbackPlan>('/api/v3/incidents/coordinated-rollback-plan', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
     }),
 }

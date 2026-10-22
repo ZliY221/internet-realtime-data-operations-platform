@@ -224,3 +224,20 @@ export interface ReleaseWindowCoordination {
   automaticReleaseStarted: boolean
 }
 
+export interface RollbackServiceRequest {
+  serviceName: string
+  rollbackReady: boolean
+}
+
+export interface CoordinatedRollbackPlan {
+  status: 'READY' | 'BLOCKED'
+  blockers: string[]
+  steps: Array<{
+    sequence: number
+    serviceName: string
+    dependenciesInPlan: string[]
+    requiredGate: 'VERIFY_METRICS_AND_DEPENDENTS'
+  }>
+  automaticRollbackStarted: boolean
+}
+

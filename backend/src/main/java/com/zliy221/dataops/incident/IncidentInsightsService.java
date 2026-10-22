@@ -91,6 +91,12 @@ public class IncidentInsightsService {
     public record ReleaseWindowCoordination(String status,
                                             List<ReleaseWindowAssignment> assignments,
                                             boolean automaticReleaseStarted) {}
+    public record RollbackServiceRequest(String serviceName, boolean rollbackReady) {}
+    public record RollbackStep(int sequence, String serviceName,
+                               List<String> dependenciesInPlan, String requiredGate) {}
+    public record CoordinatedRollbackPlan(String status, List<String> blockers,
+                                          List<RollbackStep> steps,
+                                          boolean automaticRollbackStarted) {}
 
     private static final Map<String, List<String>> DEPENDENCIES = Map.of(
             "gateway", List.of("checkout", "catalog"),
@@ -425,6 +431,50 @@ public class IncidentInsightsService {
         boolean delayed = assignments.stream().anyMatch(item -> item.delayedMinutes() > 0);
         return new ReleaseWindowCoordination(delayed ? "COORDINATED" : "READY",
                 assignments, false);
+    }
+
+    public CoordinatedRollbackPlan planCoordinatedRollback(List<RollbackServiceRequest> requests) {
+        if (requests == null || requests.isEmpty()) {
+            throw new IllegalArgumentException("回滚服务不能为空");
+        }
+        Set<String> names = new HashSet<>();
+        List<String> blockers = new ArrayList<>();
+        for (RollbackServiceRequest request : requests) {
+            if (request == null || request.serviceName() == null
+                    || request.serviceName().isBlank()
+                    || !request.serviceName().equals(request.serviceName().trim())
+                    || !names.add(request.serviceName())) {
+                throw new IllegalArgumentException("回滚服务输入无效");
+            }
+            blastRadius(request.serviceName());
+            if (!request.rollbackReady()) blockers.add(request.serviceName() + " 回滚工件未就绪");
+        }
+        if (!blockers.isEmpty()) {
+            return new CoordinatedRollbackPlan("BLOCKED", blockers, List.of(), false);
+        }
+        List<String> ordered = names.stream()
+                .sorted((left, right) -> {
+                    int depth = Integer.compare(dependencyDepth(right, names, new HashSet<>()),
+                            dependencyDepth(left, names, new HashSet<>()));
+                    return depth != 0 ? depth : left.compareTo(right);
+                }).toList();
+        List<RollbackStep> steps = new ArrayList<>();
+        for (int index = 0; index < ordered.size(); index++) {
+            String serviceName = ordered.get(index);
+            List<String> dependencies = DEPENDENCIES.getOrDefault(serviceName, List.of())
+                    .stream().filter(names::contains).sorted().toList();
+            steps.add(new RollbackStep(index + 1, serviceName, dependencies,
+                    "VERIFY_METRICS_AND_DEPENDENTS"));
+        }
+        return new CoordinatedRollbackPlan("READY", List.of(), steps, false);
+    }
+
+    private int dependencyDepth(String serviceName, Set<String> plan, Set<String> visited) {
+        if (!visited.add(serviceName)) return 0;
+        return DEPENDENCIES.getOrDefault(serviceName, List.of()).stream()
+                .filter(plan::contains)
+                .mapToInt(name -> 1 + dependencyDepth(name, plan, new HashSet<>(visited)))
+                .max().orElse(0);
     }
 
     private Set<String> affectedServices(String serviceName) {

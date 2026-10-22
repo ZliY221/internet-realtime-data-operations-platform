@@ -439,4 +439,21 @@ class ApiWorkflowIntegrationTest {
                 .andExpect(jsonPath("$.assignments[1].sharedServices[1]").value("payment"))
                 .andExpect(jsonPath("$.automaticReleaseStarted").value(false));
     }
+
+    @Test
+    void coordinatedRollbackEndpointReturnsDependencyOrder() throws Exception {
+        mockMvc.perform(post("/api/v3/incidents/coordinated-rollback-plan")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                [
+                                  {"serviceName":"payment","rollbackReady":true},
+                                  {"serviceName":"checkout","rollbackReady":true}
+                                ]
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("READY"))
+                .andExpect(jsonPath("$.steps[0].serviceName").value("checkout"))
+                .andExpect(jsonPath("$.steps[1].serviceName").value("payment"))
+                .andExpect(jsonPath("$.automaticRollbackStarted").value(false));
+    }
 }
