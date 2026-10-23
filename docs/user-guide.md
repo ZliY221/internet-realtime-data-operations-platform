@@ -1,6 +1,6 @@
 # 用户使用指南
 
-适用版本：`v3.3.0`
+适用版本：`v3.4.0`
 
 本指南随项目版本同步更新，说明当前版本的本地运行、指标接入、实时看板和告警处置方法。首次使用建议先阅读仓库首页的项目简介、系统架构和常用入口，再按本指南启动前后端服务。
 
@@ -33,6 +33,10 @@
 ### 事故关联变更排序（v3.3.0）
 
 调用 `POST /api/v3/incidents/{incidentService}/change-correlation`，提交候选变更编号、服务名称、变更距事故发生的分钟数和错误率增幅。接口按事故服务的直接变更、依赖链关系、时间接近程度和指标变化生成排序；`STRONG_CANDIDATE` 表示存在高优先级排查对象，`REVIEW_CANDIDATES` 表示需要结合日志继续核对，`WEAK_SIGNAL` 表示现有证据较弱。分数仅用于缩小排障范围，`automaticRollbackStarted=false` 表示不会自动将相关性判断当作回滚结论。
+
+### 故障服务依赖边界隔离（v3.4.0）
+
+调用 `POST /api/v3/incidents/{failedService}/isolation-plan`，请求体传入已完成降级准备的上游服务名称数组。系统识别故障服务的直接上游和下游依赖：准备完成的上游返回 `ROUTE_TO_FALLBACK`，尚未准备的上游返回 `STOP_DEPENDENT_CALLS`；没有直接上游时返回 `BLOCK_DIRECT_INGRESS`。`FALLBACK_READY` 表示所有直接上游均可切换备用路径，否则为 `MANUAL_CONTAINMENT_REQUIRED`。`automaticIsolationStarted=false` 表示接口只生成隔离与验证建议，不会自动修改服务流量。
 
 ## 1. 环境要求
 

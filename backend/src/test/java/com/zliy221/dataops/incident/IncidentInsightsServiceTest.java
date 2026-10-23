@@ -239,4 +239,21 @@ class IncidentInsightsServiceTest {
                         new IncidentInsightsService.ChangeCandidate("same", "payment", 20, 0.3)
                 )));
     }
+
+    @Test
+    void serviceIsolationUsesFallbackForReadyUpstream() {
+        var result = service.planServiceIsolation("payment", List.of("checkout"));
+        assertEquals("FALLBACK_READY", result.status());
+        assertEquals("checkout", result.actions().getFirst().upstreamService());
+        assertEquals("ROUTE_TO_FALLBACK", result.actions().getFirst().action());
+        assertEquals(List.of("notification"), result.downstreamToMonitor());
+        assertFalse(result.automaticIsolationStarted());
+    }
+
+    @Test
+    void serviceIsolationRequiresManualContainmentWithoutFallback() {
+        var result = service.planServiceIsolation("checkout", List.of());
+        assertEquals("MANUAL_CONTAINMENT_REQUIRED", result.status());
+        assertEquals("STOP_DEPENDENT_CALLS", result.actions().getFirst().action());
+    }
 }

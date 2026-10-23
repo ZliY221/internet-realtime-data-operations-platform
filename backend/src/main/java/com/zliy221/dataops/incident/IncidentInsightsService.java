@@ -107,6 +107,12 @@ public class IncidentInsightsService {
     public record IncidentChangeRanking(String incidentService, String status,
                                         List<ChangeCorrelation> candidates,
                                         boolean automaticRollbackStarted) {}
+    public record IsolationAction(String upstreamService, String failedService,
+                                  String action, String verificationGate) {}
+    public record ServiceIsolationPlan(String failedService, String status,
+                                       List<String> downstreamToMonitor,
+                                       List<IsolationAction> actions,
+                                       boolean automaticIsolationStarted) {}
 
     private static final Map<String, List<String>> DEPENDENCIES = Map.of(
             "gateway", List.of("checkout", "catalog"),
@@ -517,6 +523,41 @@ public class IncidentInsightsService {
         String status = ranked.getFirst().correlationScore() >= 60 ? "STRONG_CANDIDATE"
                 : ranked.getFirst().correlationScore() >= 35 ? "REVIEW_CANDIDATES" : "WEAK_SIGNAL";
         return new IncidentChangeRanking(incidentService, status, ranked, false);
+    }
+
+    public ServiceIsolationPlan planServiceIsolation(String failedService,
+                                                      List<String> fallbackReadyServices) {
+        blastRadius(failedService);
+        if (fallbackReadyServices == null) {
+            throw new IllegalArgumentException("降级准备服务不能为空");
+        }
+        Set<String> ready = new HashSet<>();
+        for (String serviceName : fallbackReadyServices) {
+            if (serviceName == null || serviceName.isBlank()
+                    || !serviceName.equals(serviceName.trim()) || !ready.add(serviceName)) {
+                throw new IllegalArgumentException("降级准备服务输入无效");
+            }
+            blastRadius(serviceName);
+        }
+        List<String> upstream = DEPENDENCIES.entrySet().stream()
+                .filter(entry -> entry.getValue().contains(failedService))
+                .map(Map.Entry::getKey).sorted().toList();
+        List<IsolationAction> actions = new ArrayList<>();
+        if (upstream.isEmpty()) {
+            actions.add(new IsolationAction(failedService, failedService,
+                    "BLOCK_DIRECT_INGRESS", "VERIFY_ERROR_RATE_STOPS_GROWING"));
+        } else {
+            for (String serviceName : upstream) {
+                actions.add(new IsolationAction(serviceName, failedService,
+                        ready.contains(serviceName) ? "ROUTE_TO_FALLBACK" : "STOP_DEPENDENT_CALLS",
+                        "VERIFY_UPSTREAM_DEGRADATION"));
+            }
+        }
+        List<String> downstream = DEPENDENCIES.getOrDefault(failedService, List.of())
+                .stream().sorted().toList();
+        String status = !upstream.isEmpty() && upstream.stream().allMatch(ready::contains)
+                ? "FALLBACK_READY" : "MANUAL_CONTAINMENT_REQUIRED";
+        return new ServiceIsolationPlan(failedService, status, downstream, actions, false);
     }
 
     private int dependencyDepth(String serviceName, Set<String> plan, Set<String> visited) {

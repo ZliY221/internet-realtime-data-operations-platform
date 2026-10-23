@@ -472,4 +472,16 @@ class ApiWorkflowIntegrationTest {
                 .andExpect(jsonPath("$.candidates[0].changeId").value("checkout-2"))
                 .andExpect(jsonPath("$.automaticRollbackStarted").value(false));
     }
+
+    @Test
+    void serviceIsolationEndpointReturnsContainmentBoundary() throws Exception {
+        mockMvc.perform(post("/api/v3/incidents/payment/isolation-plan")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("[\"checkout\"]"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("FALLBACK_READY"))
+                .andExpect(jsonPath("$.actions[0].upstreamService").value("checkout"))
+                .andExpect(jsonPath("$.downstreamToMonitor[0]").value("notification"))
+                .andExpect(jsonPath("$.automaticIsolationStarted").value(false));
+    }
 }

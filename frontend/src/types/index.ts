@@ -258,3 +258,16 @@ export interface IncidentChangeRanking {
   automaticRollbackStarted: boolean
 }
 
+export interface ServiceIsolationPlan {
+  failedService: string
+  status: 'FALLBACK_READY' | 'MANUAL_CONTAINMENT_REQUIRED'
+  downstreamToMonitor: string[]
+  actions: Array<{
+    upstreamService: string
+    failedService: string
+    action: 'ROUTE_TO_FALLBACK' | 'STOP_DEPENDENT_CALLS' | 'BLOCK_DIRECT_INGRESS'
+    verificationGate: 'VERIFY_UPSTREAM_DEGRADATION' | 'VERIFY_ERROR_RATE_STOPS_GROWING'
+  }>
+  automaticIsolationStarted: boolean
+}
+

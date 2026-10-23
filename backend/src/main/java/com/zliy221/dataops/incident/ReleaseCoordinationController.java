@@ -34,4 +34,11 @@ public class ReleaseCoordinationController {
             @RequestBody List<IncidentInsightsService.ChangeCandidate> candidates) {
         return service.rankIncidentChanges(incidentService, candidates);
     }
+
+    @PostMapping("/{failedService}/isolation-plan")
+    public IncidentInsightsService.ServiceIsolationPlan planServiceIsolation(
+            @org.springframework.web.bind.annotation.PathVariable String failedService,
+            @RequestBody List<String> fallbackReadyServices) {
+        return service.planServiceIsolation(failedService, fallbackReadyServices);
+    }
 }

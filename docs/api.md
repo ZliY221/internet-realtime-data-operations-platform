@@ -50,3 +50,7 @@
 
 `POST /api/v3/incidents/{incidentService}/change-correlation` 接收候选服务变更，返回服务关系、时间和错误率增幅构成的关联分数及排查顺序。接口不自动触发回滚。
 
+# v3.4 故障服务依赖边界隔离
+
+`POST /api/v3/incidents/{failedService}/isolation-plan` 接收已完成降级准备的上游服务名称数组，返回受影响的直接上游、需要监控的下游依赖、隔离动作和验证门禁。接口只生成处置计划，不自动切流或停止服务调用。
+
