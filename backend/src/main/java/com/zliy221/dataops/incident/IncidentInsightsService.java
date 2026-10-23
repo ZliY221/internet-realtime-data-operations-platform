@@ -97,6 +97,16 @@ public class IncidentInsightsService {
     public record CoordinatedRollbackPlan(String status, List<String> blockers,
                                           List<RollbackStep> steps,
                                           boolean automaticRollbackStarted) {}
+    public record ChangeCandidate(String changeId, String serviceName,
+                                  int minutesBeforeIncident,
+                                  double errorRateIncreasePoints) {}
+    public record ChangeCorrelation(String changeId, String serviceName,
+                                    String relationship, double correlationScore,
+                                    int minutesBeforeIncident,
+                                    double errorRateIncreasePoints) {}
+    public record IncidentChangeRanking(String incidentService, String status,
+                                        List<ChangeCorrelation> candidates,
+                                        boolean automaticRollbackStarted) {}
 
     private static final Map<String, List<String>> DEPENDENCIES = Map.of(
             "gateway", List.of("checkout", "catalog"),
@@ -467,6 +477,46 @@ public class IncidentInsightsService {
                     "VERIFY_METRICS_AND_DEPENDENTS"));
         }
         return new CoordinatedRollbackPlan("READY", List.of(), steps, false);
+    }
+
+    public IncidentChangeRanking rankIncidentChanges(String incidentService,
+                                                      List<ChangeCandidate> candidates) {
+        blastRadius(incidentService);
+        if (candidates == null || candidates.isEmpty()) {
+            throw new IllegalArgumentException("候选变更不能为空");
+        }
+        Set<String> changeIds = new HashSet<>();
+        List<ChangeCorrelation> ranked = new ArrayList<>();
+        for (ChangeCandidate candidate : candidates) {
+            if (candidate == null || candidate.changeId() == null
+                    || candidate.changeId().isBlank()
+                    || !candidate.changeId().equals(candidate.changeId().trim())
+                    || !changeIds.add(candidate.changeId())
+                    || candidate.minutesBeforeIncident() < 0
+                    || candidate.minutesBeforeIncident() > 10080
+                    || candidate.errorRateIncreasePoints() < 0) {
+                throw new IllegalArgumentException("候选变更输入无效");
+            }
+            blastRadius(candidate.serviceName());
+            boolean direct = candidate.serviceName().equals(incidentService);
+            boolean related = !direct && (affectedServices(candidate.serviceName()).contains(incidentService)
+                    || affectedServices(incidentService).contains(candidate.serviceName()));
+            String relationship = direct ? "DIRECT" : related ? "DEPENDENCY" : "UNRELATED";
+            double relationshipScore = direct ? 60 : related ? 35 : 0;
+            double recencyScore = Math.max(0, 30 * (1 - candidate.minutesBeforeIncident() / 120.0));
+            double metricScore = Math.min(10, candidate.errorRateIncreasePoints() * 10);
+            double score = Math.round((relationshipScore + recencyScore + metricScore) * 10.0) / 10.0;
+            ranked.add(new ChangeCorrelation(candidate.changeId(), candidate.serviceName(),
+                    relationship, score, candidate.minutesBeforeIncident(),
+                    candidate.errorRateIncreasePoints()));
+        }
+        ranked.sort((left, right) -> {
+            int score = Double.compare(right.correlationScore(), left.correlationScore());
+            return score != 0 ? score : left.changeId().compareTo(right.changeId());
+        });
+        String status = ranked.getFirst().correlationScore() >= 60 ? "STRONG_CANDIDATE"
+                : ranked.getFirst().correlationScore() >= 35 ? "REVIEW_CANDIDATES" : "WEAK_SIGNAL";
+        return new IncidentChangeRanking(incidentService, status, ranked, false);
     }
 
     private int dependencyDepth(String serviceName, Set<String> plan, Set<String> visited) {

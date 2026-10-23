@@ -1,6 +1,6 @@
 # 用户使用指南
 
-适用版本：`v3.2.0`
+适用版本：`v3.3.0`
 
 本指南随项目版本同步更新，说明当前版本的本地运行、指标接入、实时看板和告警处置方法。首次使用建议先阅读仓库首页的项目简介、系统架构和常用入口，再按本指南启动前后端服务。
 
@@ -29,6 +29,10 @@
 ### 协同回滚顺序（v3.2.0）
 
 调用 `POST /api/v3/incidents/coordinated-rollback-plan`，提交本次需要回滚的服务名称和各服务回滚工件是否就绪。系统只在全部工件就绪时生成步骤，并按服务依赖关系先安排依赖方、再安排其底层依赖，避免先恢复底层服务后又被尚未回滚的上层变更继续调用。每一步均要求 `VERIFY_METRICS_AND_DEPENDENTS` 门禁；返回 `BLOCKED` 时应先补齐 `blockers` 中的工件。`automaticRollbackStarted=false` 表示接口只生成操作顺序，不会执行部署或流量变更。
+
+### 事故关联变更排序（v3.3.0）
+
+调用 `POST /api/v3/incidents/{incidentService}/change-correlation`，提交候选变更编号、服务名称、变更距事故发生的分钟数和错误率增幅。接口按事故服务的直接变更、依赖链关系、时间接近程度和指标变化生成排序；`STRONG_CANDIDATE` 表示存在高优先级排查对象，`REVIEW_CANDIDATES` 表示需要结合日志继续核对，`WEAK_SIGNAL` 表示现有证据较弱。分数仅用于缩小排障范围，`automaticRollbackStarted=false` 表示不会自动将相关性判断当作回滚结论。
 
 ## 1. 环境要求
 

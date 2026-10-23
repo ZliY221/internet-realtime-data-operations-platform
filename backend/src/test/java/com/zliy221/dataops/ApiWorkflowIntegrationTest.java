@@ -456,4 +456,20 @@ class ApiWorkflowIntegrationTest {
                 .andExpect(jsonPath("$.steps[1].serviceName").value("payment"))
                 .andExpect(jsonPath("$.automaticRollbackStarted").value(false));
     }
+
+    @Test
+    void changeCorrelationEndpointRanksCandidateChanges() throws Exception {
+        mockMvc.perform(post("/api/v3/incidents/checkout/change-correlation")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                [
+                                  {"changeId":"payment-1","serviceName":"payment","minutesBeforeIncident":5,"errorRateIncreasePoints":0.3},
+                                  {"changeId":"checkout-2","serviceName":"checkout","minutesBeforeIncident":20,"errorRateIncreasePoints":0.5}
+                                ]
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("STRONG_CANDIDATE"))
+                .andExpect(jsonPath("$.candidates[0].changeId").value("checkout-2"))
+                .andExpect(jsonPath("$.automaticRollbackStarted").value(false));
+    }
 }

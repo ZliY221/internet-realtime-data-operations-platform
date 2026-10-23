@@ -46,3 +46,7 @@
 
 `POST /api/v3/incidents/coordinated-rollback-plan` 接收服务名称和回滚工件就绪状态，返回依赖感知的回滚步骤、每步验证门禁和阻断原因。接口只生成计划，不自动执行回滚。
 
+# v3.3 事故关联变更排序
+
+`POST /api/v3/incidents/{incidentService}/change-correlation` 接收候选服务变更，返回服务关系、时间和错误率增幅构成的关联分数及排查顺序。接口不自动触发回滚。
+

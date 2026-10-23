@@ -217,4 +217,26 @@ class IncidentInsightsServiceTest {
         assertTrue(result.steps().isEmpty());
         assertEquals(1, result.blockers().size());
     }
+
+    @Test
+    void changeCorrelationRanksDirectRecentChangeFirst() {
+        var result = service.rankIncidentChanges("checkout", List.of(
+                new IncidentInsightsService.ChangeCandidate("catalog-1", "catalog", 10, 0.8),
+                new IncidentInsightsService.ChangeCandidate("checkout-2", "checkout", 20, 0.5),
+                new IncidentInsightsService.ChangeCandidate("payment-3", "payment", 5, 0.3)
+        ));
+        assertEquals("STRONG_CANDIDATE", result.status());
+        assertEquals("checkout-2", result.candidates().getFirst().changeId());
+        assertEquals("DIRECT", result.candidates().getFirst().relationship());
+        assertFalse(result.automaticRollbackStarted());
+    }
+
+    @Test
+    void changeCorrelationRejectsDuplicateChangeId() {
+        assertThrows(IllegalArgumentException.class, () -> service.rankIncidentChanges(
+                "checkout", List.of(
+                        new IncidentInsightsService.ChangeCandidate("same", "checkout", 10, 0.2),
+                        new IncidentInsightsService.ChangeCandidate("same", "payment", 20, 0.3)
+                )));
+    }
 }

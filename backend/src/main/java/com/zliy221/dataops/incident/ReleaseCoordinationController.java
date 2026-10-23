@@ -27,4 +27,11 @@ public class ReleaseCoordinationController {
             @RequestBody List<IncidentInsightsService.RollbackServiceRequest> requests) {
         return service.planCoordinatedRollback(requests);
     }
+
+    @PostMapping("/{incidentService}/change-correlation")
+    public IncidentInsightsService.IncidentChangeRanking rankIncidentChanges(
+            @org.springframework.web.bind.annotation.PathVariable String incidentService,
+            @RequestBody List<IncidentInsightsService.ChangeCandidate> candidates) {
+        return service.rankIncidentChanges(incidentService, candidates);
+    }
 }

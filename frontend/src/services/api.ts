@@ -1,4 +1,4 @@
-import type { Alert, AlertBulkOwnerResult, AlertBulkResult, AlertDispatchPreview, AlertDispatchResult, AlertSummary, AlertWorkload, CanaryReleaseDecision, CoordinatedRollbackPlan, Incident, IncidentSummary, Metric, MetricInput, ReleaseWindowCoordination, ReleaseWindowRequest, RollbackServiceRequest, ServiceCapacityPlan, ServiceHealth, StagedReleasePlan, Summary, TrafficFailoverReadiness } from '../types'
+import type { Alert, AlertBulkOwnerResult, AlertBulkResult, AlertDispatchPreview, AlertDispatchResult, AlertSummary, AlertWorkload, CanaryReleaseDecision, ChangeCandidate, CoordinatedRollbackPlan, Incident, IncidentChangeRanking, IncidentSummary, Metric, MetricInput, ReleaseWindowCoordination, ReleaseWindowRequest, RollbackServiceRequest, ServiceCapacityPlan, ServiceHealth, StagedReleasePlan, Summary, TrafficFailoverReadiness } from '../types'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init)
@@ -102,6 +102,10 @@ export const api = {
     }),
   coordinatedRollbackPlan: (input: RollbackServiceRequest[]) =>
     request<CoordinatedRollbackPlan>('/api/v3/incidents/coordinated-rollback-plan', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
+    }),
+  rankIncidentChanges: (incidentService: string, input: ChangeCandidate[]) =>
+    request<IncidentChangeRanking>(`/api/v3/incidents/${encodeURIComponent(incidentService)}/change-correlation`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
     }),
 }

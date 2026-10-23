@@ -241,3 +241,20 @@ export interface CoordinatedRollbackPlan {
   automaticRollbackStarted: boolean
 }
 
+export interface ChangeCandidate {
+  changeId: string
+  serviceName: string
+  minutesBeforeIncident: number
+  errorRateIncreasePoints: number
+}
+
+export interface IncidentChangeRanking {
+  incidentService: string
+  status: 'STRONG_CANDIDATE' | 'REVIEW_CANDIDATES' | 'WEAK_SIGNAL'
+  candidates: Array<ChangeCandidate & {
+    relationship: 'DIRECT' | 'DEPENDENCY' | 'UNRELATED'
+    correlationScore: number
+  }>
+  automaticRollbackStarted: boolean
+}
+
