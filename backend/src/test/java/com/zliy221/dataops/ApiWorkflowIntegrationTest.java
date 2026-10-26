@@ -507,4 +507,29 @@ class ApiWorkflowIntegrationTest {
                 .andExpect(jsonPath("$.unresolvedCount").value(0))
                 .andExpect(jsonPath("$.incidentChangesStarted").value(false));
     }
+
+    @Test
+    void operatorCommandBoardReturnsABoundedPriorityQueue() throws Exception {
+        StringBuilder payload = new StringBuilder("[");
+        for (int index = 0; index < 100; index++) {
+            if (index > 0) payload.append(',');
+            int scenario = index % 6;
+            payload.append("{\"journeyId\":\"board-").append(index)
+                    .append("\",\"serviceName\":\"checkout\",\"metricsAvailable\":")
+                    .append(scenario != 0)
+                    .append(",\"alertAcknowledged\":").append(scenario > 1)
+                    .append(",\"ownerAssigned\":").append(scenario > 2)
+                    .append(",\"dependencyReviewed\":").append(scenario > 3)
+                    .append(",\"recoveryVerified\":").append(scenario > 4).append('}');
+        }
+        payload.append(']');
+        mockMvc.perform(post("/api/v3/incidents/operator-command-board")
+                        .param("visibleLimit", "10")
+                        .contentType(MediaType.APPLICATION_JSON).content(payload.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("OPERATOR_COMMAND_BOARD_READY"))
+                .andExpect(jsonPath("$.visibleCount").value(10))
+                .andExpect(jsonPath("$.focusItems[0].status").value("BLOCKED"))
+                .andExpect(jsonPath("$.incidentChangesStarted").value(false));
+    }
 }

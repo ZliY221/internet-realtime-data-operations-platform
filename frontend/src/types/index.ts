@@ -302,3 +302,26 @@ export interface OperatorJourneyRehearsal {
   incidentChangesStarted: boolean
 }
 
+export interface OperatorCommandBoard {
+  status: 'OPERATOR_COMMAND_BOARD_READY'
+  journeyCount: number
+  visibleCount: number
+  remainingCount: number
+  estimatedFocusMinutes: number
+  laneCounts: Record<string, number>
+  focusItems: Array<{
+    rank: number
+    journeyId: string
+    serviceName: string
+    status: 'BLOCKED' | 'GUIDED' | 'VERIFY' | 'READY'
+    primaryAction: string
+    steps: string[]
+    message: string
+    estimatedMinutes: number
+    resumeKey: string
+    requiresConfirmation: boolean
+  }>
+  guidance: string
+  incidentChangesStarted: boolean
+}
+

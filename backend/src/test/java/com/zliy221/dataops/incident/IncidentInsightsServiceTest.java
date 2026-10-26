@@ -282,4 +282,34 @@ class IncidentInsightsServiceTest {
                         "one", "checkout", true, true, true, true, true)
         )));
     }
+
+    @Test
+    void operatorCommandBoardPrioritisesBlockedJourneysAndBoundsVisibleWork() {
+        var journeys = new java.util.ArrayList<IncidentInsightsService.OperatorJourneyRequest>();
+        for (int index = 0; index < 100; index++) {
+            int scenario = index % 6;
+            journeys.add(new IncidentInsightsService.OperatorJourneyRequest(
+                    "command-" + index, scenario % 2 == 0 ? "checkout" : "payment",
+                    scenario != 0, scenario > 1, scenario > 2,
+                    scenario > 3, scenario > 4));
+        }
+        var result = service.buildOperatorCommandBoard(journeys, 10);
+        assertEquals("OPERATOR_COMMAND_BOARD_READY", result.status());
+        assertEquals(100, result.journeyCount());
+        assertEquals(10, result.visibleCount());
+        assertEquals(90, result.remainingCount());
+        assertTrue(result.focusItems().stream().allMatch(item -> item.status().equals("BLOCKED")));
+        assertFalse(result.incidentChangesStarted());
+    }
+
+    @Test
+    void operatorCommandBoardRejectsAnUnboundedVisibleQueue() {
+        var journeys = new java.util.ArrayList<IncidentInsightsService.OperatorJourneyRequest>();
+        for (int index = 0; index < 100; index++) {
+            journeys.add(new IncidentInsightsService.OperatorJourneyRequest(
+                    "command-" + index, "checkout", true, true, true, true, true));
+        }
+        assertThrows(IllegalArgumentException.class,
+                () -> service.buildOperatorCommandBoard(journeys, 26));
+    }
 }

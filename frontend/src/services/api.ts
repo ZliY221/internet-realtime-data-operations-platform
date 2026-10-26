@@ -1,4 +1,4 @@
-import type { Alert, AlertBulkOwnerResult, AlertBulkResult, AlertDispatchPreview, AlertDispatchResult, AlertSummary, AlertWorkload, CanaryReleaseDecision, ChangeCandidate, CoordinatedRollbackPlan, Incident, IncidentChangeRanking, IncidentSummary, Metric, MetricInput, OperatorJourneyRequest, OperatorJourneyRehearsal, ReleaseWindowCoordination, ReleaseWindowRequest, RollbackServiceRequest, ServiceCapacityPlan, ServiceHealth, ServiceIsolationPlan, StagedReleasePlan, Summary, TrafficFailoverReadiness } from '../types'
+import type { Alert, AlertBulkOwnerResult, AlertBulkResult, AlertDispatchPreview, AlertDispatchResult, AlertSummary, AlertWorkload, CanaryReleaseDecision, ChangeCandidate, CoordinatedRollbackPlan, Incident, IncidentChangeRanking, IncidentSummary, Metric, MetricInput, OperatorCommandBoard, OperatorJourneyRequest, OperatorJourneyRehearsal, ReleaseWindowCoordination, ReleaseWindowRequest, RollbackServiceRequest, ServiceCapacityPlan, ServiceHealth, ServiceIsolationPlan, StagedReleasePlan, Summary, TrafficFailoverReadiness } from '../types'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init)
@@ -114,6 +114,10 @@ export const api = {
     }),
   operatorRehearsal: (input: OperatorJourneyRequest[]) =>
     request<OperatorJourneyRehearsal>('/api/v3/incidents/operator-rehearsal', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
+    }),
+  operatorCommandBoard: (input: OperatorJourneyRequest[], visibleLimit = 15) =>
+    request<OperatorCommandBoard>(`/api/v3/incidents/operator-command-board?visibleLimit=${visibleLimit}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
     }),
 }

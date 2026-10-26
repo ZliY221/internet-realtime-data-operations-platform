@@ -47,4 +47,11 @@ public class ReleaseCoordinationController {
             @RequestBody List<IncidentInsightsService.OperatorJourneyRequest> journeys) {
         return service.rehearseOperatorJourneys(journeys);
     }
+
+    @PostMapping("/operator-command-board")
+    public IncidentInsightsService.OperatorCommandBoard operatorCommandBoard(
+            @RequestBody List<IncidentInsightsService.OperatorJourneyRequest> journeys,
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "15") int visibleLimit) {
+        return service.buildOperatorCommandBoard(journeys, visibleLimit);
+    }
 }

@@ -131,6 +131,18 @@ public class IncidentInsightsService {
                                            Map<String, Integer> actionCounts,
                                            List<OperatorJourneyResult> journeys,
                                            boolean incidentChangesStarted) {}
+    public record CommandBoardItem(int rank, String journeyId, String serviceName,
+                                   String status, String primaryAction,
+                                   List<String> steps, String message,
+                                   int estimatedMinutes, String resumeKey,
+                                   boolean requiresConfirmation) {}
+    public record OperatorCommandBoard(String status, int journeyCount,
+                                       int visibleCount, int remainingCount,
+                                       int estimatedFocusMinutes,
+                                       Map<String, Integer> laneCounts,
+                                       List<CommandBoardItem> focusItems,
+                                       String guidance,
+                                       boolean incidentChangesStarted) {}
 
     private static final Map<String, List<String>> DEPENDENCIES = Map.of(
             "gateway", List.of("checkout", "catalog"),
@@ -648,6 +660,45 @@ public class IncidentInsightsService {
         return new OperatorJourneyRehearsal("USABILITY_REHEARSAL_PASSED",
                 results.size(), ready, results.size() - ready, unresolved,
                 Math.round(average * 100.0) / 100.0, actionCounts, results, false);
+    }
+
+    public OperatorCommandBoard buildOperatorCommandBoard(
+            List<OperatorJourneyRequest> journeys, int visibleLimit) {
+        if (visibleLimit < 1 || visibleLimit > 25) {
+            throw new IllegalArgumentException("焦点队列数量必须在 1 到 25 之间");
+        }
+        OperatorJourneyRehearsal rehearsal = rehearseOperatorJourneys(journeys);
+        Map<String, Integer> statusOrder = Map.of(
+                "BLOCKED", 0, "GUIDED", 1, "VERIFY", 2, "READY", 3);
+        Map<String, Integer> actionMinutes = Map.of(
+                "OPEN_METRICS_OVERVIEW", 4,
+                "ACKNOWLEDGE_ALERT", 3,
+                "ASSIGN_INCIDENT_OWNER", 5,
+                "REVIEW_DEPENDENCY_BOUNDARY", 10,
+                "VERIFY_RECOVERY_GATES", 8,
+                "CLOSE_INCIDENT", 6);
+        List<OperatorJourneyResult> ordered = new ArrayList<>(rehearsal.journeys());
+        ordered.sort((left, right) -> {
+            int status = Integer.compare(statusOrder.get(left.status()), statusOrder.get(right.status()));
+            if (status != 0) return status;
+            int confirmation = Boolean.compare(right.requiresConfirmation(), left.requiresConfirmation());
+            return confirmation != 0 ? confirmation : left.journeyId().compareTo(right.journeyId());
+        });
+        List<CommandBoardItem> focus = new ArrayList<>();
+        for (int index = 0; index < Math.min(visibleLimit, ordered.size()); index++) {
+            OperatorJourneyResult item = ordered.get(index);
+            focus.add(new CommandBoardItem(index + 1, item.journeyId(), item.serviceName(),
+                    item.status(), item.primaryAction(), item.steps(), item.message(),
+                    actionMinutes.get(item.primaryAction()),
+                    item.journeyId() + ":" + item.primaryAction(),
+                    item.requiresConfirmation()));
+        }
+        Map<String, Integer> laneCounts = new java.util.TreeMap<>();
+        ordered.forEach(item -> laneCounts.merge(item.status(), 1, Integer::sum));
+        int minutes = focus.stream().mapToInt(CommandBoardItem::estimatedMinutes).sum();
+        return new OperatorCommandBoard("OPERATOR_COMMAND_BOARD_READY", 100,
+                focus.size(), 100 - focus.size(), minutes, laneCounts, focus,
+                "先补齐实时指标，再确认告警责任和依赖边界，最后完成恢复门禁。", false);
     }
 
     private int dependencyDepth(String serviceName, Set<String> plan, Set<String> visited) {

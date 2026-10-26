@@ -58,3 +58,7 @@
 
 `POST /api/v3/incidents/operator-rehearsal` 接收恰好 100 条值班操作旅程，按指标、告警确认、负责人、依赖边界和恢复门禁返回逐条首要动作与操作步骤。响应汇总动作分布、平均步骤和未解决场景；接口不自动改变事故或服务状态。
 
+# v3.6 事故指挥焦点队列
+
+`POST /api/v3/incidents/operator-command-board?visibleLimit=15` 接收恰好 100 条值班旅程。`visibleLimit` 范围为 1 至 25。响应按操作阻塞程度返回有限焦点任务，并提供剩余数量、状态分布、预计处理时间和恢复键。接口不会自动执行事故处置。
+
