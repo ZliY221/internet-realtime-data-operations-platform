@@ -41,4 +41,10 @@ public class ReleaseCoordinationController {
             @RequestBody List<String> fallbackReadyServices) {
         return service.planServiceIsolation(failedService, fallbackReadyServices);
     }
+
+    @PostMapping("/operator-rehearsal")
+    public IncidentInsightsService.OperatorJourneyRehearsal rehearseOperatorJourneys(
+            @RequestBody List<IncidentInsightsService.OperatorJourneyRequest> journeys) {
+        return service.rehearseOperatorJourneys(journeys);
+    }
 }

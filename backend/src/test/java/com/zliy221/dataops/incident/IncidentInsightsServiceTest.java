@@ -256,4 +256,30 @@ class IncidentInsightsServiceTest {
         assertEquals("MANUAL_CONTAINMENT_REQUIRED", result.status());
         assertEquals("STOP_DEPENDENT_CALLS", result.actions().getFirst().action());
     }
+
+    @Test
+    void oneHundredOperatorJourneysAllReceiveGuidedActions() {
+        var journeys = new java.util.ArrayList<IncidentInsightsService.OperatorJourneyRequest>();
+        for (int index = 0; index < 100; index++) {
+            int scenario = index % 6;
+            journeys.add(new IncidentInsightsService.OperatorJourneyRequest(
+                    "journey-" + index, scenario % 2 == 0 ? "checkout" : "payment",
+                    scenario != 0, scenario > 1, scenario > 2,
+                    scenario > 3, scenario > 4));
+        }
+        var result = service.rehearseOperatorJourneys(journeys);
+        assertEquals("USABILITY_REHEARSAL_PASSED", result.status());
+        assertEquals(100, result.journeyCount());
+        assertEquals(0, result.unresolvedCount());
+        assertTrue(result.journeys().stream().allMatch(item -> !item.steps().isEmpty()));
+        assertFalse(result.incidentChangesStarted());
+    }
+
+    @Test
+    void operatorRehearsalRejectsIncompleteSimulation() {
+        assertThrows(IllegalArgumentException.class, () -> service.rehearseOperatorJourneys(List.of(
+                new IncidentInsightsService.OperatorJourneyRequest(
+                        "one", "checkout", true, true, true, true, true)
+        )));
+    }
 }

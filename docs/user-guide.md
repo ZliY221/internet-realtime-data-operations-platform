@@ -1,6 +1,6 @@
 # 用户使用指南
 
-适用版本：`v3.4.0`
+适用版本：`v3.5.0`
 
 本指南随项目版本同步更新，说明当前版本的本地运行、指标接入、实时看板和告警处置方法。首次使用建议先阅读仓库首页的项目简介、系统架构和常用入口，再按本指南启动前后端服务。
 
@@ -37,6 +37,10 @@
 ### 故障服务依赖边界隔离（v3.4.0）
 
 调用 `POST /api/v3/incidents/{failedService}/isolation-plan`，请求体传入已完成降级准备的上游服务名称数组。系统识别故障服务的直接上游和下游依赖：准备完成的上游返回 `ROUTE_TO_FALLBACK`，尚未准备的上游返回 `STOP_DEPENDENT_CALLS`；没有直接上游时返回 `BLOCK_DIRECT_INGRESS`。`FALLBACK_READY` 表示所有直接上游均可切换备用路径，否则为 `MANUAL_CONTAINMENT_REQUIRED`。`automaticIsolationStarted=false` 表示接口只生成隔离与验证建议，不会自动修改服务流量。
+
+### 值班操作旅程演练（v3.5.0）
+
+调用 `POST /api/v3/incidents/operator-rehearsal`，一次提交恰好 100 条值班操作旅程。每条记录包含服务名称，以及指标是否可用、告警是否确认、负责人是否分配、依赖是否复核和恢复门禁是否通过。系统按照“指标 → 告警 → 负责人 → 依赖 → 恢复 → 关闭”的顺序返回 `primaryAction`、三步 `steps`、中文 `message` 和确认要求，使值班人员无需在多个页面中猜测下一步。`unresolvedCount=0` 表示全部场景均有明确路径；`incidentChangesStarted=false` 表示演练不会确认告警、切流、隔离服务或关闭事故。
 
 ## 1. 环境要求
 

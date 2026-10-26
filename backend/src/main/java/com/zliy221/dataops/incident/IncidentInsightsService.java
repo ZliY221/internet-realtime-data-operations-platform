@@ -113,6 +113,24 @@ public class IncidentInsightsService {
                                        List<String> downstreamToMonitor,
                                        List<IsolationAction> actions,
                                        boolean automaticIsolationStarted) {}
+    public record OperatorJourneyRequest(String journeyId, String serviceName,
+                                         boolean metricsAvailable,
+                                         boolean alertAcknowledged,
+                                         boolean ownerAssigned,
+                                         boolean dependencyReviewed,
+                                         boolean recoveryVerified) {}
+    public record OperatorJourneyResult(String journeyId, String serviceName,
+                                        String status, String primaryAction,
+                                        List<String> steps, String message,
+                                        int expectedSteps,
+                                        boolean requiresConfirmation) {}
+    public record OperatorJourneyRehearsal(String status, int journeyCount,
+                                           int readyCount, int guidedCount,
+                                           int unresolvedCount,
+                                           double averageExpectedSteps,
+                                           Map<String, Integer> actionCounts,
+                                           List<OperatorJourneyResult> journeys,
+                                           boolean incidentChangesStarted) {}
 
     private static final Map<String, List<String>> DEPENDENCIES = Map.of(
             "gateway", List.of("checkout", "catalog"),
@@ -558,6 +576,78 @@ public class IncidentInsightsService {
         String status = !upstream.isEmpty() && upstream.stream().allMatch(ready::contains)
                 ? "FALLBACK_READY" : "MANUAL_CONTAINMENT_REQUIRED";
         return new ServiceIsolationPlan(failedService, status, downstream, actions, false);
+    }
+
+    public OperatorJourneyRehearsal rehearseOperatorJourneys(
+            List<OperatorJourneyRequest> journeys) {
+        if (journeys == null || journeys.size() != 100) {
+            throw new IllegalArgumentException("值班体验演练必须包含 100 条操作旅程");
+        }
+        Set<String> identifiers = new HashSet<>();
+        List<OperatorJourneyResult> results = new ArrayList<>();
+        for (OperatorJourneyRequest journey : journeys) {
+            if (journey == null || journey.journeyId() == null
+                    || journey.journeyId().isBlank()
+                    || !journey.journeyId().equals(journey.journeyId().trim())
+                    || !identifiers.add(journey.journeyId())) {
+                throw new IllegalArgumentException("操作旅程编号必须非空且唯一");
+            }
+            blastRadius(journey.serviceName());
+            String status;
+            String action;
+            List<String> steps;
+            String message;
+            boolean confirmation;
+            if (!journey.metricsAvailable()) {
+                status = "BLOCKED";
+                action = "OPEN_METRICS_OVERVIEW";
+                steps = List.of("打开服务指标", "确认采集新鲜度", "重新评估告警状态");
+                message = "缺少最新指标，暂不推进会改变事故状态的操作。";
+                confirmation = false;
+            } else if (!journey.alertAcknowledged()) {
+                status = "GUIDED";
+                action = "ACKNOWLEDGE_ALERT";
+                steps = List.of("确认告警影响", "登记接手时间", "进入事故工作区");
+                message = "先确认告警，避免多人重复接手或告警无人负责。";
+                confirmation = true;
+            } else if (!journey.ownerAssigned()) {
+                status = "GUIDED";
+                action = "ASSIGN_INCIDENT_OWNER";
+                steps = List.of("查看值班负载", "选择负责人", "发送处置交接");
+                message = "事故尚无负责人，应先完成责任归属。";
+                confirmation = true;
+            } else if (!journey.dependencyReviewed()) {
+                status = "GUIDED";
+                action = "REVIEW_DEPENDENCY_BOUNDARY";
+                steps = List.of("查看影响半径", "确认上下游状态", "选择隔离或降级路径");
+                message = "依赖边界尚未复核，不建议直接执行服务变更。";
+                confirmation = true;
+            } else if (!journey.recoveryVerified()) {
+                status = "VERIFY";
+                action = "VERIFY_RECOVERY_GATES";
+                steps = List.of("核对核心指标", "检查错误预算", "确认下游恢复");
+                message = "处置已推进，但恢复门禁尚未全部确认。";
+                confirmation = true;
+            } else {
+                status = "READY";
+                action = "CLOSE_INCIDENT";
+                steps = List.of("复核事故时间线", "记录恢复结论", "关闭事故并安排复盘");
+                message = "处置证据完整，可进入关闭确认。";
+                confirmation = true;
+            }
+            results.add(new OperatorJourneyResult(journey.journeyId(), journey.serviceName(),
+                    status, action, steps, message, steps.size(), confirmation));
+        }
+        Map<String, Integer> actionCounts = new java.util.TreeMap<>();
+        results.forEach(item -> actionCounts.merge(item.primaryAction(), 1, Integer::sum));
+        int ready = (int) results.stream().filter(item -> item.status().equals("READY")).count();
+        int unresolved = (int) results.stream()
+                .filter(item -> item.steps().isEmpty() || item.message().isBlank()).count();
+        double average = results.stream().mapToInt(OperatorJourneyResult::expectedSteps)
+                .average().orElse(0);
+        return new OperatorJourneyRehearsal("USABILITY_REHEARSAL_PASSED",
+                results.size(), ready, results.size() - ready, unresolved,
+                Math.round(average * 100.0) / 100.0, actionCounts, results, false);
     }
 
     private int dependencyDepth(String serviceName, Set<String> plan, Set<String> visited) {

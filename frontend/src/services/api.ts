@@ -1,4 +1,4 @@
-import type { Alert, AlertBulkOwnerResult, AlertBulkResult, AlertDispatchPreview, AlertDispatchResult, AlertSummary, AlertWorkload, CanaryReleaseDecision, ChangeCandidate, CoordinatedRollbackPlan, Incident, IncidentChangeRanking, IncidentSummary, Metric, MetricInput, ReleaseWindowCoordination, ReleaseWindowRequest, RollbackServiceRequest, ServiceCapacityPlan, ServiceHealth, ServiceIsolationPlan, StagedReleasePlan, Summary, TrafficFailoverReadiness } from '../types'
+import type { Alert, AlertBulkOwnerResult, AlertBulkResult, AlertDispatchPreview, AlertDispatchResult, AlertSummary, AlertWorkload, CanaryReleaseDecision, ChangeCandidate, CoordinatedRollbackPlan, Incident, IncidentChangeRanking, IncidentSummary, Metric, MetricInput, OperatorJourneyRequest, OperatorJourneyRehearsal, ReleaseWindowCoordination, ReleaseWindowRequest, RollbackServiceRequest, ServiceCapacityPlan, ServiceHealth, ServiceIsolationPlan, StagedReleasePlan, Summary, TrafficFailoverReadiness } from '../types'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init)
@@ -111,6 +111,10 @@ export const api = {
   serviceIsolationPlan: (failedService: string, fallbackReadyServices: string[]) =>
     request<ServiceIsolationPlan>(`/api/v3/incidents/${encodeURIComponent(failedService)}/isolation-plan`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(fallbackReadyServices),
+    }),
+  operatorRehearsal: (input: OperatorJourneyRequest[]) =>
+    request<OperatorJourneyRehearsal>('/api/v3/incidents/operator-rehearsal', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
     }),
 }
 

@@ -271,3 +271,34 @@ export interface ServiceIsolationPlan {
   automaticIsolationStarted: boolean
 }
 
+export interface OperatorJourneyRequest {
+  journeyId: string
+  serviceName: string
+  metricsAvailable: boolean
+  alertAcknowledged: boolean
+  ownerAssigned: boolean
+  dependencyReviewed: boolean
+  recoveryVerified: boolean
+}
+
+export interface OperatorJourneyRehearsal {
+  status: 'USABILITY_REHEARSAL_PASSED'
+  journeyCount: number
+  readyCount: number
+  guidedCount: number
+  unresolvedCount: number
+  averageExpectedSteps: number
+  actionCounts: Record<string, number>
+  journeys: Array<{
+    journeyId: string
+    serviceName: string
+    status: 'BLOCKED' | 'GUIDED' | 'VERIFY' | 'READY'
+    primaryAction: string
+    steps: string[]
+    message: string
+    expectedSteps: number
+    requiresConfirmation: boolean
+  }>
+  incidentChangesStarted: boolean
+}
+
