@@ -1,6 +1,6 @@
 # 用户使用指南
 
-适用版本：`v3.7.0`
+适用版本：`v3.8.0`
 
 本指南随项目版本同步更新，说明当前版本的本地运行、指标接入、实时看板和告警处置方法。首次使用建议先阅读仓库首页的项目简介、系统架构和常用入口，再按本指南启动前后端服务。
 
@@ -195,3 +195,11 @@ docker compose up --build
 调用 `POST /api/v3/incidents/slo-burn-rate`，提交服务名称、SLO 目标、快慢窗口错误率、窗口分钟数、SLO 周期天数和剩余错误预算比例。接口返回允许错误率、快慢窗口燃烧率、预计预算耗尽小时数、四级状态和建议动作。
 
 `CRITICAL` 要求立即响应，`WARNING` 要求 30 分钟内处理，`WATCH` 在当前班次复核，`HEALTHY` 保持常规观察。剩余预算低于门槛时即使短期指标尚可也会升级。`automaticMitigationStarted=false` 表示接口不会自动回滚、切流或暂停发布。
+
+## 11. v3.8.0 告警降噪关联
+
+调用 `POST /api/v3/incidents/alert-correlation?correlationWindowMinutes=10`，提交告警信号列表。每条信号包含 `eventId`、`serviceName`、`ruleCode`、`severity`、`observedMinute` 和 `state`。关联窗口可设置为 1 至 120 分钟，默认 10 分钟。
+
+接口按服务、规则和时间窗口归并信号，返回关联组、最高严重级别、事件数量、被抑制的重复数量和 `flapping` 状态。`flapping=true` 表示同组信号在 `OPEN` 与 `RESOLVED` 间发生多次切换，需要先检查规则阈值或指标稳定性；`noiseReductionPercent` 用于评估重复告警减少比例。
+
+值班人员应先查看严重级别高且存在抖动的关联组，再进入原始事件核实根因。`automaticAlertChangesStarted=false` 表示接口只提供关联视图，不会自动确认、解决或删除任何告警。

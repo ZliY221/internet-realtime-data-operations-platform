@@ -338,4 +338,27 @@ class IncidentInsightsServiceTest {
                 new IncidentInsightsService.SloBurnRateRequest(
                         "checkout", 100, 1, 1, 5, 60, 30, 50)));
     }
+
+    @Test
+    void alertCorrelationGroupsDuplicatesAndDetectsFlapping() {
+        var result = service.correlateAlertSignals(List.of(
+                new IncidentInsightsService.AlertSignal("e1", "checkout", "error-rate", "WARNING", 100, "OPEN"),
+                new IncidentInsightsService.AlertSignal("e2", "checkout", "error-rate", "CRITICAL", 102, "RESOLVED"),
+                new IncidentInsightsService.AlertSignal("e3", "checkout", "error-rate", "WARNING", 104, "OPEN")
+        ), 10);
+        assertEquals("CORRELATED", result.status());
+        assertEquals(1, result.groupCount());
+        assertEquals(2, result.suppressedDuplicateCount());
+        assertTrue(result.groups().getFirst().flapping());
+        assertEquals("CRITICAL", result.groups().getFirst().severity());
+        assertFalse(result.automaticAlertChangesStarted());
+    }
+
+    @Test
+    void alertCorrelationRejectsDuplicateEventIds() {
+        var signal = new IncidentInsightsService.AlertSignal(
+                "same", "checkout", "latency", "WARNING", 100, "OPEN");
+        assertThrows(IllegalArgumentException.class,
+                () -> service.correlateAlertSignals(List.of(signal, signal), 10));
+    }
 }

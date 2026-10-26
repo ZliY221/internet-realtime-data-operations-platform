@@ -350,3 +350,33 @@ export interface SloBurnRateAssessment {
   automaticMitigationStarted: boolean
 }
 
+export interface AlertSignal {
+  eventId: string
+  serviceName: string
+  ruleCode: string
+  severity: 'WARNING' | 'CRITICAL'
+  observedMinute: number
+  state: 'OPEN' | 'RESOLVED'
+}
+
+export interface AlertCorrelationReport {
+  status: 'CORRELATED' | 'NO_REDUCTION'
+  signalCount: number
+  groupCount: number
+  suppressedDuplicateCount: number
+  noiseReductionPercent: number
+  groups: Array<{
+    correlationKey: string
+    serviceName: string
+    ruleCode: string
+    severity: 'WARNING' | 'CRITICAL'
+    firstObservedMinute: number
+    lastObservedMinute: number
+    occurrenceCount: number
+    stateTransitionCount: number
+    flapping: boolean
+    sampleEventIds: string[]
+  }>
+  automaticAlertChangesStarted: boolean
+}
+

@@ -1,4 +1,4 @@
-import type { Alert, AlertBulkOwnerResult, AlertBulkResult, AlertDispatchPreview, AlertDispatchResult, AlertSummary, AlertWorkload, CanaryReleaseDecision, ChangeCandidate, CoordinatedRollbackPlan, Incident, IncidentChangeRanking, IncidentSummary, Metric, MetricInput, OperatorCommandBoard, OperatorJourneyRequest, OperatorJourneyRehearsal, ReleaseWindowCoordination, ReleaseWindowRequest, RollbackServiceRequest, ServiceCapacityPlan, ServiceHealth, ServiceIsolationPlan, SloBurnRateAssessment, SloBurnRateRequest, StagedReleasePlan, Summary, TrafficFailoverReadiness } from '../types'
+import type { Alert, AlertBulkOwnerResult, AlertBulkResult, AlertCorrelationReport, AlertDispatchPreview, AlertDispatchResult, AlertSignal, AlertSummary, AlertWorkload, CanaryReleaseDecision, ChangeCandidate, CoordinatedRollbackPlan, Incident, IncidentChangeRanking, IncidentSummary, Metric, MetricInput, OperatorCommandBoard, OperatorJourneyRequest, OperatorJourneyRehearsal, ReleaseWindowCoordination, ReleaseWindowRequest, RollbackServiceRequest, ServiceCapacityPlan, ServiceHealth, ServiceIsolationPlan, SloBurnRateAssessment, SloBurnRateRequest, StagedReleasePlan, Summary, TrafficFailoverReadiness } from '../types'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init)
@@ -122,6 +122,10 @@ export const api = {
     }),
   sloBurnRate: (input: SloBurnRateRequest) =>
     request<SloBurnRateAssessment>('/api/v3/incidents/slo-burn-rate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
+    }),
+  correlateAlerts: (input: AlertSignal[], correlationWindowMinutes = 10) =>
+    request<AlertCorrelationReport>(`/api/v3/incidents/alert-correlation?correlationWindowMinutes=${correlationWindowMinutes}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
     }),
 }

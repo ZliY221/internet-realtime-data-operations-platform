@@ -554,4 +554,22 @@ class ApiWorkflowIntegrationTest {
                 .andExpect(jsonPath("$.urgency").value("RESPOND_WITHIN_30_MINUTES"))
                 .andExpect(jsonPath("$.automaticMitigationStarted").value(false));
     }
+
+    @Test
+    void alertCorrelationEndpointReducesDuplicateSignals() throws Exception {
+        mockMvc.perform(post("/api/v3/incidents/alert-correlation")
+                        .param("correlationWindowMinutes", "10")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                [
+                                  {"eventId":"e1","serviceName":"checkout","ruleCode":"error-rate","severity":"WARNING","observedMinute":100,"state":"OPEN"},
+                                  {"eventId":"e2","serviceName":"checkout","ruleCode":"error-rate","severity":"CRITICAL","observedMinute":102,"state":"RESOLVED"}
+                                ]
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CORRELATED"))
+                .andExpect(jsonPath("$.groupCount").value(1))
+                .andExpect(jsonPath("$.suppressedDuplicateCount").value(1))
+                .andExpect(jsonPath("$.automaticAlertChangesStarted").value(false));
+    }
 }

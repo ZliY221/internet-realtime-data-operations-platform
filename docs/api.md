@@ -66,3 +66,7 @@
 
 `POST /api/v3/incidents/slo-burn-rate` 接收服务名称、SLO 目标、快慢窗口错误率、窗口长度、SLO 周期和剩余预算。响应包含 `fastBurnRate`、`slowBurnRate`、`estimatedBudgetExhaustionHours`、`status`、`urgency` 与 `recommendedActions`。当慢窗口没有错误时，预计耗尽小时数使用 `-1` 表示当前不可耗尽。接口保持只读，不执行自动缓解动作。
 
+# v3.8.0 告警降噪关联
+
+`POST /api/v3/incidents/alert-correlation?correlationWindowMinutes=10` 接收告警信号列表，并按服务、规则和时间窗口合并重复信号。响应包含关联组、最高严重级别、事件数量、抑制数量、抖动状态和整体降噪比例。`correlationWindowMinutes` 范围为 1 至 120；接口保持只读，不自动确认、解决或删除告警。
+

@@ -10,6 +10,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.time.temporal.ChronoUnit;
 
 @Service
@@ -156,6 +157,18 @@ public class IncidentInsightsService {
                                         String status, String urgency,
                                         List<String> recommendedActions,
                                         boolean automaticMitigationStarted) {}
+    public record AlertSignal(String eventId, String serviceName, String ruleCode,
+                              String severity, long observedMinute, String state) {}
+    public record AlertCorrelationGroup(String correlationKey, String serviceName,
+                                        String ruleCode, String severity,
+                                        long firstObservedMinute, long lastObservedMinute,
+                                        int occurrenceCount, int stateTransitionCount,
+                                        boolean flapping, List<String> sampleEventIds) {}
+    public record AlertCorrelationReport(String status, int signalCount, int groupCount,
+                                         int suppressedDuplicateCount,
+                                         double noiseReductionPercent,
+                                         List<AlertCorrelationGroup> groups,
+                                         boolean automaticAlertChangesStarted) {}
 
     private static final Map<String, List<String>> DEPENDENCIES = Map.of(
             "gateway", List.of("checkout", "catalog"),
@@ -765,6 +778,54 @@ public class IncidentInsightsService {
                 Math.round(slowBurn * 100.0) / 100.0,
                 request.remainingBudgetPercent(), roundedExhaustion,
                 status, urgency, actions, false);
+    }
+
+    public AlertCorrelationReport correlateAlertSignals(
+            List<AlertSignal> signals, int correlationWindowMinutes) {
+        if (signals == null || signals.isEmpty()
+                || correlationWindowMinutes < 1 || correlationWindowMinutes > 120) {
+            throw new IllegalArgumentException("告警关联输入无效");
+        }
+        Set<String> eventIds = new HashSet<>();
+        Map<String, List<AlertSignal>> grouped = new TreeMap<>();
+        for (AlertSignal signal : signals) {
+            if (signal == null || signal.eventId() == null || signal.eventId().isBlank()
+                    || !eventIds.add(signal.eventId())
+                    || signal.ruleCode() == null || signal.ruleCode().isBlank()
+                    || signal.observedMinute() < 0
+                    || !Set.of("WARNING", "CRITICAL").contains(signal.severity())
+                    || !Set.of("OPEN", "RESOLVED").contains(signal.state())) {
+                throw new IllegalArgumentException("告警信号字段无效或编号重复");
+            }
+            blastRadius(signal.serviceName());
+            long bucket = signal.observedMinute() / correlationWindowMinutes;
+            String key = signal.serviceName().trim() + ":" + signal.ruleCode().trim() + ":" + bucket;
+            grouped.computeIfAbsent(key, ignored -> new ArrayList<>()).add(signal);
+        }
+
+        List<AlertCorrelationGroup> groups = new ArrayList<>();
+        for (Map.Entry<String, List<AlertSignal>> entry : grouped.entrySet()) {
+            List<AlertSignal> ordered = entry.getValue().stream()
+                    .sorted((left, right) -> {
+                        int minute = Long.compare(left.observedMinute(), right.observedMinute());
+                        return minute != 0 ? minute : left.eventId().compareTo(right.eventId());
+                    }).toList();
+            int transitions = 0;
+            for (int index = 1; index < ordered.size(); index++) {
+                if (!ordered.get(index - 1).state().equals(ordered.get(index).state())) transitions++;
+            }
+            String severity = ordered.stream().anyMatch(item -> item.severity().equals("CRITICAL"))
+                    ? "CRITICAL" : "WARNING";
+            groups.add(new AlertCorrelationGroup(entry.getKey(),
+                    ordered.getFirst().serviceName().trim(), ordered.getFirst().ruleCode().trim(),
+                    severity, ordered.getFirst().observedMinute(), ordered.getLast().observedMinute(),
+                    ordered.size(), transitions, transitions >= 2,
+                    ordered.stream().limit(5).map(AlertSignal::eventId).toList()));
+        }
+        int suppressed = signals.size() - groups.size();
+        double reduction = Math.round(suppressed * 10000.0 / signals.size()) / 100.0;
+        return new AlertCorrelationReport(suppressed > 0 ? "CORRELATED" : "NO_REDUCTION",
+                signals.size(), groups.size(), suppressed, reduction, groups, false);
     }
 
     private int dependencyDepth(String serviceName, Set<String> plan, Set<String> visited) {

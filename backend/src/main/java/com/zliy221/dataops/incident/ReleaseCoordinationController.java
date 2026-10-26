@@ -60,4 +60,12 @@ public class ReleaseCoordinationController {
             @RequestBody IncidentInsightsService.SloBurnRateRequest request) {
         return service.assessSloBurnRate(request);
     }
+
+    @PostMapping("/alert-correlation")
+    public IncidentInsightsService.AlertCorrelationReport correlateAlertSignals(
+            @RequestBody List<IncidentInsightsService.AlertSignal> signals,
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "10")
+            int correlationWindowMinutes) {
+        return service.correlateAlertSignals(signals, correlationWindowMinutes);
+    }
 }
