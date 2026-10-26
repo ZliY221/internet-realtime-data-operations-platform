@@ -532,4 +532,26 @@ class ApiWorkflowIntegrationTest {
                 .andExpect(jsonPath("$.focusItems[0].status").value("BLOCKED"))
                 .andExpect(jsonPath("$.incidentChangesStarted").value(false));
     }
+
+    @Test
+    void sloBurnRateEndpointReturnsMultiWindowAssessment() throws Exception {
+        mockMvc.perform(post("/api/v3/incidents/slo-burn-rate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "serviceName":"checkout",
+                                  "objectivePercent":99.9,
+                                  "fastWindowErrorRatePercent":0.8,
+                                  "slowWindowErrorRatePercent":0.4,
+                                  "fastWindowMinutes":5,
+                                  "slowWindowMinutes":60,
+                                  "sloWindowDays":30,
+                                  "remainingBudgetPercent":18
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("WARNING"))
+                .andExpect(jsonPath("$.urgency").value("RESPOND_WITHIN_30_MINUTES"))
+                .andExpect(jsonPath("$.automaticMitigationStarted").value(false));
+    }
 }

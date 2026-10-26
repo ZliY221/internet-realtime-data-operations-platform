@@ -312,4 +312,30 @@ class IncidentInsightsServiceTest {
         assertThrows(IllegalArgumentException.class,
                 () -> service.buildOperatorCommandBoard(journeys, 26));
     }
+
+    @Test
+    void sloBurnRatePagesWhenFastAndSlowWindowsAreExhaustingBudget() {
+        var result = service.assessSloBurnRate(new IncidentInsightsService.SloBurnRateRequest(
+                "checkout", 99.9, 2.0, 0.8, 5, 60, 30, 40));
+        assertEquals("CRITICAL", result.status());
+        assertEquals("PAGE_NOW", result.urgency());
+        assertTrue(result.fastBurnRate() >= 14.4);
+        assertFalse(result.automaticMitigationStarted());
+    }
+
+    @Test
+    void sloBurnRateKeepsHealthyServiceInRoutineMonitoring() {
+        var result = service.assessSloBurnRate(new IncidentInsightsService.SloBurnRateRequest(
+                "catalog", 99.9, 0.05, 0.04, 5, 60, 30, 80));
+        assertEquals("HEALTHY", result.status());
+        assertEquals("ROUTINE_MONITORING", result.urgency());
+        assertTrue(result.estimatedBudgetExhaustionHours() > 0);
+    }
+
+    @Test
+    void sloBurnRateRejectsInvalidObjective() {
+        assertThrows(IllegalArgumentException.class, () -> service.assessSloBurnRate(
+                new IncidentInsightsService.SloBurnRateRequest(
+                        "checkout", 100, 1, 1, 5, 60, 30, 50)));
+    }
 }

@@ -325,3 +325,28 @@ export interface OperatorCommandBoard {
   incidentChangesStarted: boolean
 }
 
+export interface SloBurnRateRequest {
+  serviceName: string
+  objectivePercent: number
+  fastWindowErrorRatePercent: number
+  slowWindowErrorRatePercent: number
+  fastWindowMinutes: number
+  slowWindowMinutes: number
+  sloWindowDays: number
+  remainingBudgetPercent: number
+}
+
+export interface SloBurnRateAssessment {
+  serviceName: string
+  objectivePercent: number
+  allowedErrorRatePercent: number
+  fastBurnRate: number
+  slowBurnRate: number
+  remainingBudgetPercent: number
+  estimatedBudgetExhaustionHours: number
+  status: 'HEALTHY' | 'WATCH' | 'WARNING' | 'CRITICAL'
+  urgency: 'ROUTINE_MONITORING' | 'REVIEW_THIS_SHIFT' | 'RESPOND_WITHIN_30_MINUTES' | 'PAGE_NOW'
+  recommendedActions: string[]
+  automaticMitigationStarted: boolean
+}
+

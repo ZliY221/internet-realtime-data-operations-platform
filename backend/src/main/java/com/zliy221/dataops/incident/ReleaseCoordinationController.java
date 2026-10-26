@@ -54,4 +54,10 @@ public class ReleaseCoordinationController {
             @org.springframework.web.bind.annotation.RequestParam(defaultValue = "15") int visibleLimit) {
         return service.buildOperatorCommandBoard(journeys, visibleLimit);
     }
+
+    @PostMapping("/slo-burn-rate")
+    public IncidentInsightsService.SloBurnRateAssessment assessSloBurnRate(
+            @RequestBody IncidentInsightsService.SloBurnRateRequest request) {
+        return service.assessSloBurnRate(request);
+    }
 }

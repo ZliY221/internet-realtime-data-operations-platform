@@ -62,3 +62,7 @@
 
 `POST /api/v3/incidents/operator-command-board?visibleLimit=15` 接收恰好 100 条值班旅程。`visibleLimit` 范围为 1 至 25。响应按操作阻塞程度返回有限焦点任务，并提供剩余数量、状态分布、预计处理时间和恢复键。接口不会自动执行事故处置。
 
+# v3.7.0 多窗口 SLO 燃烧率
+
+`POST /api/v3/incidents/slo-burn-rate` 接收服务名称、SLO 目标、快慢窗口错误率、窗口长度、SLO 周期和剩余预算。响应包含 `fastBurnRate`、`slowBurnRate`、`estimatedBudgetExhaustionHours`、`status`、`urgency` 与 `recommendedActions`。当慢窗口没有错误时，预计耗尽小时数使用 `-1` 表示当前不可耗尽。接口保持只读，不执行自动缓解动作。
+

@@ -143,6 +143,19 @@ public class IncidentInsightsService {
                                        List<CommandBoardItem> focusItems,
                                        String guidance,
                                        boolean incidentChangesStarted) {}
+    public record SloBurnRateRequest(String serviceName, double objectivePercent,
+                                     double fastWindowErrorRatePercent,
+                                     double slowWindowErrorRatePercent,
+                                     int fastWindowMinutes, int slowWindowMinutes,
+                                     int sloWindowDays, double remainingBudgetPercent) {}
+    public record SloBurnRateAssessment(String serviceName, double objectivePercent,
+                                        double allowedErrorRatePercent,
+                                        double fastBurnRate, double slowBurnRate,
+                                        double remainingBudgetPercent,
+                                        double estimatedBudgetExhaustionHours,
+                                        String status, String urgency,
+                                        List<String> recommendedActions,
+                                        boolean automaticMitigationStarted) {}
 
     private static final Map<String, List<String>> DEPENDENCIES = Map.of(
             "gateway", List.of("checkout", "catalog"),
@@ -699,6 +712,59 @@ public class IncidentInsightsService {
         return new OperatorCommandBoard("OPERATOR_COMMAND_BOARD_READY", 100,
                 focus.size(), 100 - focus.size(), minutes, laneCounts, focus,
                 "先补齐实时指标，再确认告警责任和依赖边界，最后完成恢复门禁。", false);
+    }
+
+    public SloBurnRateAssessment assessSloBurnRate(SloBurnRateRequest request) {
+        if (request == null) throw new IllegalArgumentException("SLO 燃烧率输入不能为空");
+        blastRadius(request.serviceName());
+        if (request.objectivePercent() < 90 || request.objectivePercent() >= 100
+                || request.fastWindowErrorRatePercent() < 0
+                || request.fastWindowErrorRatePercent() > 100
+                || request.slowWindowErrorRatePercent() < 0
+                || request.slowWindowErrorRatePercent() > 100
+                || request.fastWindowMinutes() < 1
+                || request.slowWindowMinutes() < request.fastWindowMinutes()
+                || request.slowWindowMinutes() > 1440
+                || request.sloWindowDays() < 1 || request.sloWindowDays() > 90
+                || request.remainingBudgetPercent() < 0
+                || request.remainingBudgetPercent() > 100) {
+            throw new IllegalArgumentException("SLO 燃烧率输入无效");
+        }
+        double allowed = 100.0 - request.objectivePercent();
+        double fastBurn = request.fastWindowErrorRatePercent() / allowed;
+        double slowBurn = request.slowWindowErrorRatePercent() / allowed;
+        double exhaustionHours = slowBurn == 0
+                ? Double.POSITIVE_INFINITY
+                : (request.remainingBudgetPercent() / 100.0)
+                    * request.sloWindowDays() * 24.0 / slowBurn;
+        String status;
+        String urgency;
+        List<String> actions;
+        if (request.remainingBudgetPercent() <= 5 || (fastBurn >= 14.4 && slowBurn >= 6)) {
+            status = "CRITICAL";
+            urgency = "PAGE_NOW";
+            actions = List.of("冻结高风险发布", "检查最近变更与依赖", "启动事故响应");
+        } else if (request.remainingBudgetPercent() <= 20 || (fastBurn >= 6 && slowBurn >= 3)) {
+            status = "WARNING";
+            urgency = "RESPOND_WITHIN_30_MINUTES";
+            actions = List.of("通知服务负责人", "核对错误来源", "准备降级或回滚方案");
+        } else if (fastBurn >= 2 || slowBurn >= 1.5) {
+            status = "WATCH";
+            urgency = "REVIEW_THIS_SHIFT";
+            actions = List.of("扩大观察窗口", "检查容量与依赖趋势", "记录风险说明");
+        } else {
+            status = "HEALTHY";
+            urgency = "ROUTINE_MONITORING";
+            actions = List.of("保持当前流量", "继续观察快慢窗口", "按班次复核错误预算");
+        }
+        double roundedExhaustion = Double.isInfinite(exhaustionHours)
+                ? -1 : Math.round(exhaustionHours * 100.0) / 100.0;
+        return new SloBurnRateAssessment(request.serviceName().trim(),
+                request.objectivePercent(), Math.round(allowed * 10000.0) / 10000.0,
+                Math.round(fastBurn * 100.0) / 100.0,
+                Math.round(slowBurn * 100.0) / 100.0,
+                request.remainingBudgetPercent(), roundedExhaustion,
+                status, urgency, actions, false);
     }
 
     private int dependencyDepth(String serviceName, Set<String> plan, Set<String> visited) {
