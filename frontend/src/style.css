@@ -34,7 +34,13 @@ button, select { cursor: pointer; touch-action: manipulation; }
 }
 .skip-link:focus { left: 8px; }
 
-.app-shell { min-height: 100vh; display: grid; grid-template-columns: 250px minmax(0, 1fr); }
+.app-shell { min-height: 100vh; display: grid; grid-template-columns: 250px minmax(0, 1fr); transition: background .25s ease; }
+.app-shell[data-page="overview"] { background: radial-gradient(circle at 84% 8%, rgba(14, 165, 168, .13), transparent 31rem), #f3f7f8; }
+.app-shell[data-page="traffic"] { background: linear-gradient(rgba(33, 91, 122, .045) 1px, transparent 1px), linear-gradient(90deg, rgba(33, 91, 122, .045) 1px, transparent 1px), #edf4f7; background-size: 28px 28px; }
+.app-shell[data-page="incidents"] { background: radial-gradient(circle at 80% 12%, rgba(214, 116, 44, .14), transparent 31rem), linear-gradient(145deg, #f8f0ea, #f3f6f7); }
+.app-shell[data-page="alerts"] { background: radial-gradient(circle at 22% 86%, rgba(92, 68, 151, .13), transparent 30rem), linear-gradient(145deg, #f3f1f8, #edf5f5); }
+.page-view { animation: page-view-in .24s ease both; }
+@keyframes page-view-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .sidebar {
   position: sticky;
   top: 0;
@@ -295,4 +301,5 @@ td strong { color: #1b2a3c; }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   * { transition-duration: .01ms !important; }
+  .page-view { animation: none; }
 }

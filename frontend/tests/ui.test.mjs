@@ -7,7 +7,7 @@ const styles = readFileSync(new URL('../src/style.css', import.meta.url), 'utf8'
 
 test('operations center exposes an accessible status-first layout', () => {
   assert.match(app, /class="skip-link"/)
-  assert.match(app, /class="command-strip"/)
+  assert.match(app, /class="command-strip page-view"/)
   assert.match(app, /实时通道/)
   assert.match(app, /严重告警/)
   assert.match(app, /服务事故中心/)
@@ -21,4 +21,13 @@ test('responsive rules keep the command center usable on small screens', () => {
   assert.match(styles, /@media \(max-width: 760px\)/)
   assert.match(styles, /@media \(max-width: 480px\)/)
   assert.match(styles, /grid-template-columns: 1fr/)
+})
+
+test('operations center separates four task-focused pages and visual canvases', () => {
+  for (const page of ['overview', 'traffic', 'incidents', 'alerts']) {
+    assert.match(app, new RegExp(`activePage === '${page}'`))
+    assert.match(styles, new RegExp(`data-page="${page}"`))
+  }
+  assert.match(app, /function activatePage/)
+  assert.match(app, /activePageCopy\.title/)
 })

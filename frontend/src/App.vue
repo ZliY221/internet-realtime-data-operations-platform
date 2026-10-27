@@ -30,6 +30,14 @@ const bulkOwner = ref('platform-oncall')
 const operationMessage = ref('')
 const selectedAlerts = ref<Set<number>>(new Set())
 const metricForm = ref({ serviceName: 'checkout', requestCount: 2000, errorCount: 20, p95LatencyMs: 320 })
+type WorkspacePage = 'overview' | 'traffic' | 'incidents' | 'alerts'
+const activePage = ref<WorkspacePage>('overview')
+const pageCopy: Record<WorkspacePage, { title: string; description: string }> = {
+  overview: { title: '互联网流量实时监控', description: '先判断全局状态，再选择需要深入处理的服务。' },
+  traffic: { title: '实时流量与服务健康', description: '对照请求、错误率和延迟变化定位异常服务。' },
+  incidents: { title: '服务事故协同中心', description: '按事故完成接手、责任分派和恢复确认。' },
+  alerts: { title: '告警处置工作台', description: '筛选有效告警，批量分派并保留处置回执。' },
+}
 let socket: WebSocket | undefined
 let reconnectTimer: number | undefined
 
@@ -40,6 +48,13 @@ const updatedLabel = computed(() => lastUpdated.value
 const timeWindowLabel = computed(() => ({ 15: '近 15 分钟', 60: '近 1 小时', 180: '近 3 小时', 1440: '近 24 小时' }[timeWindowMinutes.value] || `近 ${timeWindowMinutes.value} 分钟`))
 const trendScopeLabel = computed(() => serviceFilter.value ? `${serviceFilter.value} · ${timeWindowLabel.value}` : `全部服务 · ${timeWindowLabel.value}`)
 const summaryScopeLabel = computed(() => serviceFilter.value ? `${serviceFilter.value} · ${timeWindowLabel.value}` : timeWindowLabel.value)
+const activePageCopy = computed(() => pageCopy[activePage.value])
+
+function activatePage(page: WorkspacePage) {
+  activePage.value = page
+  window.history.replaceState(null, '', `#${page}`)
+  document.querySelector('#main-content')?.scrollTo({ top: 0, behavior: 'smooth' })
+}
 
 async function loadData() {
   try {
@@ -151,7 +166,7 @@ async function focusService(serviceName: string) {
   serviceFilter.value = serviceFilter.value === serviceName ? '' : serviceName
   selectedAlerts.value = new Set()
   await loadData()
-  document.querySelector('#traffic')?.scrollIntoView({ behavior: 'smooth' })
+  activatePage('traffic')
 }
 
 async function clearServiceFocus() {
@@ -224,21 +239,26 @@ async function dispatchSelected() {
 function percent(value: number) { return `${(value * 100).toFixed(2)}%` }
 function time(value: string) { return new Date(value).toLocaleString('zh-CN', { hour12: false }) }
 
-onMounted(async () => { await loadData(); connect() })
+onMounted(async () => {
+  const initial = location.hash.slice(1) as WorkspacePage
+  if (initial in pageCopy) activePage.value = initial
+  await loadData()
+  connect()
+})
 onBeforeUnmount(() => { socket?.close(); if (reconnectTimer) window.clearTimeout(reconnectTimer) })
 </script>
 
 <template>
   <a class="skip-link" href="#main-content">跳到主要内容</a>
-  <div class="app-shell">
+  <div class="app-shell" :data-page="activePage">
     <aside class="sidebar">
       <div class="brand"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><div><strong>Signal Desk</strong><small>网络运营中心</small></div></div>
       <p class="sidebar-context">聚焦服务健康、流量变化与告警处置，把值班动作放在同一条工作路径中。</p>
       <nav aria-label="主导航">
-        <a class="nav-item active" href="#overview"><span>01</span>运营总览</a>
-        <a class="nav-item" href="#traffic"><span>02</span>流量监控</a>
-        <a class="nav-item" href="#incidents"><span>03</span>事故中心</a>
-        <a class="nav-item" href="#alerts"><span>04</span>告警明细</a>
+        <a :class="['nav-item', { active: activePage === 'overview' }]" href="#overview" :aria-current="activePage === 'overview' ? 'page' : undefined" @click.prevent="activatePage('overview')"><span>01</span>运营总览</a>
+        <a :class="['nav-item', { active: activePage === 'traffic' }]" href="#traffic" :aria-current="activePage === 'traffic' ? 'page' : undefined" @click.prevent="activatePage('traffic')"><span>02</span>流量监控</a>
+        <a :class="['nav-item', { active: activePage === 'incidents' }]" href="#incidents" :aria-current="activePage === 'incidents' ? 'page' : undefined" @click.prevent="activatePage('incidents')"><span>03</span>事故中心</a>
+        <a :class="['nav-item', { active: activePage === 'alerts' }]" href="#alerts" :aria-current="activePage === 'alerts' ? 'page' : undefined" @click.prevent="activatePage('alerts')"><span>04</span>告警明细</a>
       </nav>
       <div class="sidebar-note">
         <span :class="['status-dot', { online: connected }]" />
@@ -248,11 +268,11 @@ onBeforeUnmount(() => { socket?.close(); if (reconnectTimer) window.clearTimeout
 
     <main id="main-content" tabindex="-1">
       <header class="topbar" id="overview">
-        <div><p class="eyebrow">NETWORK OPERATIONS CENTER</p><h1>互联网流量实时监控</h1><p class="topbar-description">先判断服务状态，再聚焦异常服务，最后完成告警交接。</p></div>
+        <div><p class="eyebrow">NETWORK OPERATIONS CENTER</p><h1>{{ activePageCopy.title }}</h1><p class="topbar-description">{{ activePageCopy.description }}</p></div>
         <div class="topbar-actions"><label class="time-window"><span>观察窗口</span><select v-model.number="timeWindowMinutes" aria-label="选择实时观察窗口" @change="changeTimeWindow"><option :value="15">近 15 分钟</option><option :value="60">近 1 小时</option><option :value="180">近 3 小时</option><option :value="1440">近 24 小时</option></select></label><div class="update-time"><span>数据更新时间</span><strong>{{ updatedLabel }}</strong></div></div>
       </header>
 
-      <section class="command-strip" aria-label="值班状态摘要">
+      <section v-show="activePage === 'overview'" class="command-strip page-view" aria-label="值班状态摘要">
         <article><span :class="['signal-light', { online: connected }]" aria-hidden="true" /><div><small>实时通道</small><strong>{{ connected ? '在线' : '重连中' }}</strong></div></article>
         <article><span class="command-code">SVC</span><div><small>活跃服务</small><strong>{{ summary.activeServices }}</strong></div></article>
         <article><span class="command-code critical">P1</span><div><small>严重告警</small><strong>{{ alertSummary.activeCritical }}</strong></div></article>
@@ -261,7 +281,7 @@ onBeforeUnmount(() => { socket?.close(); if (reconnectTimer) window.clearTimeout
 
       <p v-if="errorMessage" class="error-banner" role="alert">{{ errorMessage }} <button @click="loadData">重新加载</button></p>
 
-      <section class="panel metric-entry" aria-labelledby="metric-entry-title">
+      <section v-show="activePage === 'overview'" class="panel metric-entry page-view" aria-labelledby="metric-entry-title">
         <div class="panel-heading"><div><p class="eyebrow">LIVE INPUT</p><h2 id="metric-entry-title">提交实时流量样本</h2></div><span class="period">提交后同步至所有在线页面</span></div>
         <form @submit.prevent="submitMetric">
           <label><span>服务名称</span><input v-model.trim="metricForm.serviceName" maxlength="80" required></label>
@@ -272,14 +292,14 @@ onBeforeUnmount(() => { socket?.close(); if (reconnectTimer) window.clearTimeout
         </form>
       </section>
 
-      <section class="kpi-grid" aria-label="关键运营指标">
+      <section v-show="activePage === 'overview'" class="kpi-grid page-view" aria-label="关键运营指标">
         <article class="kpi"><p>{{ summaryScopeLabel }}请求量</p><strong>{{ requestLabel }}</strong><span>累计访问请求</span></article>
         <article class="kpi"><p>错误率</p><strong :class="{ danger: summary.errorRate >= .05 }">{{ percent(summary.errorRate) }}</strong><span>错误 {{ summary.totalErrors.toLocaleString() }} 次</span></article>
         <article class="kpi"><p>平均 P95 延迟</p><strong>{{ summary.averageP95LatencyMs.toFixed(0) }}<i> ms</i></strong><span>覆盖 {{ summary.activeServices }} 个服务</span></article>
         <article class="kpi"><p>待处理告警</p><strong class="warning">{{ summary.activeAlerts }}</strong><span>需要运营跟进</span></article>
       </section>
 
-      <section class="content-grid" id="traffic">
+      <section v-show="activePage === 'traffic'" class="content-grid page-view" id="traffic">
         <article class="panel trend-panel">
           <div class="panel-heading"><div><p class="eyebrow">TRAFFIC TREND</p><h2>请求量与响应延迟</h2></div><div class="trend-scope"><span class="period">{{ trendScopeLabel }}</span><button v-if="serviceFilter" type="button" @click="clearServiceFocus">查看全部服务</button></div></div>
           <TrendChart :metrics="metrics" />
@@ -298,7 +318,7 @@ onBeforeUnmount(() => { socket?.close(); if (reconnectTimer) window.clearTimeout
         </article>
       </section>
 
-      <section class="panel incident-panel" id="incidents">
+      <section v-show="activePage === 'incidents'" class="panel incident-panel page-view" id="incidents">
         <div class="panel-heading"><div><p class="eyebrow">INCIDENT CENTER</p><h2>服务事故中心</h2></div><span class="count">待接手 {{ incidentSummary.open }} · 处理中 {{ incidentSummary.investigating }} · 严重 {{ incidentSummary.activeCritical }}</span></div>
         <p class="incident-intro">同一服务的关联告警自动归并为一条事故，值班人员可先接手定位，再在恢复后关闭事故。</p>
         <div v-if="incidents.length === 0" class="empty">当前没有进行中的服务事故</div>
@@ -313,7 +333,7 @@ onBeforeUnmount(() => { socket?.close(); if (reconnectTimer) window.clearTimeout
         </div>
       </section>
 
-      <section class="panel alert-panel" id="alerts">
+      <section v-show="activePage === 'alerts'" class="panel alert-panel page-view" id="alerts">
         <div class="panel-heading"><div><p class="eyebrow">INCIDENT QUEUE</p><h2>告警处置队列</h2></div><div class="alert-controls"><select v-model="serviceFilter" aria-label="按服务筛选" @change="changeServiceFilter"><option value="">全部服务</option><option v-for="service in services" :key="service.serviceName" :value="service.serviceName">{{ service.serviceName }}</option></select><select v-model="severityFilter" aria-label="按告警级别筛选" @change="loadData"><option value="">全部级别</option><option value="CRITICAL">严重</option><option value="WARNING">警告</option></select><select v-model="ownerFilter" aria-label="按负责人筛选" @change="loadData"><option value="">全部负责人</option><option v-for="item in alertWorkloads.filter(item => item.owner !== '未分派')" :key="item.owner" :value="item.owner">{{ item.owner }}</option></select><span class="count">待确认 {{ alertSummary.open }} · 处理中 {{ alertSummary.acknowledged }} · 严重 {{ alertSummary.activeCritical }}</span></div></div>
         <div class="bulk-actions"><span>已选择 {{ selectedAlerts.size }} 条告警</span><small v-if="operationMessage" role="status">{{ operationMessage }}</small><select v-model="bulkOwner" aria-label="批量分派负责人"><option value="platform-oncall">平台值班</option><option value="data-oncall">数据值班</option><option value="service-owner">服务负责人</option></select><button class="primary" :disabled="!selectedAlerts.size || bulkUpdating" @click="dispatchSelected">分派并确认</button><button :disabled="!selectedAlerts.size || bulkUpdating" @click="bulkAssign">仅分派</button><button :disabled="!selectedAlerts.size || bulkUpdating" @click="bulkUpdate('acknowledge')">仅确认</button><button :disabled="!selectedAlerts.size || bulkUpdating" @click="bulkUpdate('resolve')">批量解决</button></div>
         <div class="workload-strip" aria-label="告警责任负载"><article v-for="item in alertWorkloads" :key="item.owner"><span>{{ item.owner }}</span><strong>{{ item.total }}</strong><small>待确认 {{ item.open }} · 严重 {{ item.critical }}</small></article></div>
