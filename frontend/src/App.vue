@@ -40,6 +40,13 @@ const pageCopy: Record<WorkspacePage, { title: string; description: string }> = 
 }
 let socket: WebSocket | undefined
 let reconnectTimer: number | undefined
+let realtimeRefreshTimer: number | undefined
+let loadPromise: Promise<void> | undefined
+let reloadQueued = false
+let pendingRealtimeRefresh = false
+let mounted = false
+let disposed = false
+const workspacePages: WorkspacePage[] = ['overview', 'traffic', 'incidents', 'alerts']
 
 const requestLabel = computed(() => new Intl.NumberFormat('zh-CN', { notation: 'compact' }).format(summary.value.totalRequests))
 const updatedLabel = computed(() => lastUpdated.value
@@ -50,34 +57,78 @@ const trendScopeLabel = computed(() => serviceFilter.value ? `${serviceFilter.va
 const summaryScopeLabel = computed(() => serviceFilter.value ? `${serviceFilter.value} · ${timeWindowLabel.value}` : timeWindowLabel.value)
 const activePageCopy = computed(() => pageCopy[activePage.value])
 
-function activatePage(page: WorkspacePage) {
+function activatePage(page: WorkspacePage, refresh = true) {
   activePage.value = page
   window.history.replaceState(null, '', `#${page}`)
-  document.querySelector('#main-content')?.scrollTo({ top: 0, behavior: 'smooth' })
+  try { localStorage.setItem('internet-operations-page', page) } catch (_) {}
+  window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
+  if (refresh && mounted) void loadData()
 }
 
-async function loadData() {
+function movePageFocus(event: KeyboardEvent, index: number) {
+  if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return
+  event.preventDefault()
+  const next = event.key === 'Home' ? 0 : event.key === 'End' ? workspacePages.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + workspacePages.length) % workspacePages.length
+  document.querySelectorAll<HTMLAnchorElement>('.nav-item')[next]?.focus()
+}
+
+async function performLoadData() {
   try {
-    const [summaryData, metricData, serviceData, alertSummaryData, workloadData, incidentSummaryData, openIncidents, investigatingIncidents, openAlerts, acknowledgedAlerts] = await Promise.all([
-      api.summary(serviceFilter.value, timeWindowMinutes.value), api.recentMetrics(serviceFilter.value, timeWindowMinutes.value), api.serviceHealth(timeWindowMinutes.value), api.alertSummary(), api.alertWorkloads(), api.incidentSummary(), api.incidents('OPEN'), api.incidents('INVESTIGATING'), api.alerts('OPEN', severityFilter.value, ownerFilter.value, serviceFilter.value), api.alerts('ACKNOWLEDGED', severityFilter.value, ownerFilter.value, serviceFilter.value),
-    ])
-    summary.value = summaryData
-    metrics.value = metricData
-    services.value = serviceData
-    alertSummary.value = alertSummaryData
-    alertWorkloads.value = workloadData
-    incidentSummary.value = incidentSummaryData
-    incidents.value = [...openIncidents, ...investigatingIncidents].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
-    alerts.value = [...openAlerts, ...acknowledgedAlerts]
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-    selectedAlerts.value = new Set([...selectedAlerts.value].filter(id => alerts.value.some(alert => alert.id === id)))
+    const page = activePage.value
+    if (page === 'overview') {
+      const [summaryData, alertSummaryData, incidentSummaryData] = await Promise.all([
+        api.summary(serviceFilter.value, timeWindowMinutes.value), api.alertSummary(), api.incidentSummary(),
+      ])
+      summary.value = summaryData; alertSummary.value = alertSummaryData; incidentSummary.value = incidentSummaryData
+    } else if (page === 'traffic') {
+      const [summaryData, metricData, serviceData] = await Promise.all([
+        api.summary(serviceFilter.value, timeWindowMinutes.value), api.recentMetrics(serviceFilter.value, timeWindowMinutes.value), api.serviceHealth(timeWindowMinutes.value),
+      ])
+      summary.value = summaryData; metrics.value = metricData; services.value = serviceData
+    } else if (page === 'incidents') {
+      const [incidentSummaryData, openIncidents, investigatingIncidents] = await Promise.all([
+        api.incidentSummary(), api.incidents('OPEN'), api.incidents('INVESTIGATING'),
+      ])
+      incidentSummary.value = incidentSummaryData
+      incidents.value = [...openIncidents, ...investigatingIncidents].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+    } else {
+      const [serviceData, alertSummaryData, workloadData, openAlerts, acknowledgedAlerts] = await Promise.all([
+        api.serviceHealth(timeWindowMinutes.value), api.alertSummary(), api.alertWorkloads(), api.alerts('OPEN', severityFilter.value, ownerFilter.value, serviceFilter.value), api.alerts('ACKNOWLEDGED', severityFilter.value, ownerFilter.value, serviceFilter.value),
+      ])
+      services.value = serviceData; alertSummary.value = alertSummaryData; alertWorkloads.value = workloadData
+      alerts.value = [...openAlerts, ...acknowledgedAlerts].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      selectedAlerts.value = new Set([...selectedAlerts.value].filter(id => alerts.value.some(alert => alert.id === id)))
+    }
     lastUpdated.value = new Date()
     errorMessage.value = ''
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '数据加载失败'
-  } finally {
-    loading.value = false
   }
+}
+
+async function loadData() {
+  if (loadPromise) { reloadQueued = true; return loadPromise }
+  loading.value = true
+  loadPromise = performLoadData()
+  try { await loadPromise } finally {
+    loadPromise = undefined
+    loading.value = false
+    if (reloadQueued) { reloadQueued = false; void loadData() }
+  }
+}
+
+function scheduleRealtimeRefresh() {
+  if (document.hidden) { pendingRealtimeRefresh = true; return }
+  if (realtimeRefreshTimer) window.clearTimeout(realtimeRefreshTimer)
+  realtimeRefreshTimer = window.setTimeout(() => {
+    realtimeRefreshTimer = undefined
+    pendingRealtimeRefresh = false
+    void loadData()
+  }, 180)
+}
+
+function handleVisibilityChange() {
+  if (!document.hidden && pendingRealtimeRefresh) scheduleRealtimeRefresh()
 }
 
 async function updateIncident(incident: Incident, status: 'INVESTIGATING' | 'RESOLVED') {
@@ -107,13 +158,13 @@ function connect() {
   const scheme = location.protocol === 'https:' ? 'wss' : 'ws'
   socket = new WebSocket(`${scheme}://${location.host}/ws/metrics`)
   socket.onopen = () => { connected.value = true }
-  socket.onmessage = async event => {
+  socket.onmessage = event => {
     const message = JSON.parse(event.data) as RealtimeEvent
-    if (message.type !== 'connection.ready') await loadData()
+    if (message.type !== 'connection.ready') scheduleRealtimeRefresh()
   }
   socket.onclose = () => {
     connected.value = false
-    reconnectTimer = window.setTimeout(connect, 2500)
+    if (!disposed) reconnectTimer = window.setTimeout(connect, 2500)
   }
   socket.onerror = () => socket?.close()
 }
@@ -162,10 +213,9 @@ function toggleAll(checked: boolean) {
   selectedAlerts.value = checked ? new Set(alerts.value.map(alert => alert.id)) : new Set()
 }
 
-async function focusService(serviceName: string) {
+function focusService(serviceName: string) {
   serviceFilter.value = serviceFilter.value === serviceName ? '' : serviceName
   selectedAlerts.value = new Set()
-  await loadData()
   activatePage('traffic')
 }
 
@@ -240,25 +290,35 @@ function percent(value: number) { return `${(value * 100).toFixed(2)}%` }
 function time(value: string) { return new Date(value).toLocaleString('zh-CN', { hour12: false }) }
 
 onMounted(async () => {
-  const initial = location.hash.slice(1) as WorkspacePage
+  let storedPage = ''
+  try { storedPage = localStorage.getItem('internet-operations-page') || '' } catch (_) {}
+  const initial = (location.hash.slice(1) || storedPage) as WorkspacePage
   if (initial in pageCopy) activePage.value = initial
+  mounted = true
+  document.addEventListener('visibilitychange', handleVisibilityChange)
   await loadData()
   connect()
 })
-onBeforeUnmount(() => { socket?.close(); if (reconnectTimer) window.clearTimeout(reconnectTimer) })
+onBeforeUnmount(() => {
+  disposed = true
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
+  socket?.close()
+  if (reconnectTimer) window.clearTimeout(reconnectTimer)
+  if (realtimeRefreshTimer) window.clearTimeout(realtimeRefreshTimer)
+})
 </script>
 
 <template>
   <a class="skip-link" href="#main-content">跳到主要内容</a>
-  <div class="app-shell" :data-page="activePage">
+  <div class="app-shell" :class="{ 'is-updating': loading }" :data-page="activePage" :aria-busy="loading">
     <aside class="sidebar">
       <div class="brand"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><div><strong>Signal Desk</strong><small>网络运营中心</small></div></div>
       <p class="sidebar-context">聚焦服务健康、流量变化与告警处置，把值班动作放在同一条工作路径中。</p>
       <nav aria-label="主导航">
-        <a :class="['nav-item', { active: activePage === 'overview' }]" href="#overview" :aria-current="activePage === 'overview' ? 'page' : undefined" @click.prevent="activatePage('overview')"><span>01</span>运营总览</a>
-        <a :class="['nav-item', { active: activePage === 'traffic' }]" href="#traffic" :aria-current="activePage === 'traffic' ? 'page' : undefined" @click.prevent="activatePage('traffic')"><span>02</span>流量监控</a>
-        <a :class="['nav-item', { active: activePage === 'incidents' }]" href="#incidents" :aria-current="activePage === 'incidents' ? 'page' : undefined" @click.prevent="activatePage('incidents')"><span>03</span>事故中心</a>
-        <a :class="['nav-item', { active: activePage === 'alerts' }]" href="#alerts" :aria-current="activePage === 'alerts' ? 'page' : undefined" @click.prevent="activatePage('alerts')"><span>04</span>告警明细</a>
+        <a :class="['nav-item', { active: activePage === 'overview' }]" href="#overview" :aria-current="activePage === 'overview' ? 'page' : undefined" @click.prevent="activatePage('overview')" @keydown="movePageFocus($event, 0)"><span>01</span>运营总览</a>
+        <a :class="['nav-item', { active: activePage === 'traffic' }]" href="#traffic" :aria-current="activePage === 'traffic' ? 'page' : undefined" @click.prevent="activatePage('traffic')" @keydown="movePageFocus($event, 1)"><span>02</span>流量监控</a>
+        <a :class="['nav-item', { active: activePage === 'incidents' }]" href="#incidents" :aria-current="activePage === 'incidents' ? 'page' : undefined" @click.prevent="activatePage('incidents')" @keydown="movePageFocus($event, 2)"><span>03</span>事故中心</a>
+        <a :class="['nav-item', { active: activePage === 'alerts' }]" href="#alerts" :aria-current="activePage === 'alerts' ? 'page' : undefined" @click.prevent="activatePage('alerts')" @keydown="movePageFocus($event, 3)"><span>04</span>告警明细</a>
       </nav>
       <div class="sidebar-note">
         <span :class="['status-dot', { online: connected }]" />

@@ -30,4 +30,8 @@ test('operations center separates four task-focused pages and visual canvases', 
   }
   assert.match(app, /function activatePage/)
   assert.match(app, /activePageCopy\.title/)
+  assert.match(app, /internet-operations-page/)
+  assert.match(app, /scheduleRealtimeRefresh/)
+  assert.match(app, /page === 'traffic'/)
+  assert.match(app, /aria-busy/)
 })

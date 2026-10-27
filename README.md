@@ -5,7 +5,7 @@
 Spring Boot 与 Vue 构建的全栈实时数据应用，统一完成流量接入、服务健康分析和告警协同处置。
 
 [![CI](https://github.com/ZliY221/internet-realtime-data-operations-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/ZliY221/internet-realtime-data-operations-platform/actions/workflows/ci.yml)
-![Version](https://img.shields.io/badge/version-v3.9.0-0ea5a8)
+![Version](https://img.shields.io/badge/version-v3.10.0-0ea5a8)
 ![Java](https://img.shields.io/badge/Java-21-ef4b4b)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.1-6db33f)
 ![Vue](https://img.shields.io/badge/Vue-3-42b883)
@@ -152,7 +152,7 @@ compose.yaml   PostgreSQL、后端与前端编排
 
 ## 版本与维护
 
-当前版本为 `v3.9.0`。网络运营中心升级为运营总览、流量监控、事故中心和告警明细四个操作页面，页面标题与背景随当前值班任务切换，WebSocket 和批量处置流程保持连续。每次发布同步维护[用户使用指南](docs/user-guide.md)、[版本记录](CHANGELOG.md)和[版本摘要](VERSION_LOG.md)。
+当前版本为 `v3.10.0`。网络运营中心按当前页面加载数据，并合并 WebSocket 突发事件触发的刷新，减少值班操作期间的重复请求和界面跳动。每次发布同步维护[用户使用指南](docs/user-guide.md)、[版本记录](CHANGELOG.md)和[版本摘要](VERSION_LOG.md)。
 
 ## License
 

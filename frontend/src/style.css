@@ -34,12 +34,14 @@ button, select { cursor: pointer; touch-action: manipulation; }
 }
 .skip-link:focus { left: 8px; }
 
-.app-shell { min-height: 100vh; display: grid; grid-template-columns: 250px minmax(0, 1fr); transition: background .25s ease; }
+.app-shell { position: relative; min-height: 100vh; display: grid; grid-template-columns: 250px minmax(0, 1fr); transition: background .25s ease; }
+.app-shell::before { content: ""; position: fixed; z-index: 90; inset: 0 auto auto 250px; width: 0; height: 3px; opacity: 0; background: linear-gradient(90deg, var(--cyan), var(--blue), var(--amber)); transition: width .22s ease, opacity .14s ease; }
+.app-shell.is-updating::before { width: calc(100% - 250px); opacity: 1; }
 .app-shell[data-page="overview"] { background: radial-gradient(circle at 84% 8%, rgba(14, 165, 168, .13), transparent 31rem), #f3f7f8; }
 .app-shell[data-page="traffic"] { background: linear-gradient(rgba(33, 91, 122, .045) 1px, transparent 1px), linear-gradient(90deg, rgba(33, 91, 122, .045) 1px, transparent 1px), #edf4f7; background-size: 28px 28px; }
 .app-shell[data-page="incidents"] { background: radial-gradient(circle at 80% 12%, rgba(214, 116, 44, .14), transparent 31rem), linear-gradient(145deg, #f8f0ea, #f3f6f7); }
 .app-shell[data-page="alerts"] { background: radial-gradient(circle at 22% 86%, rgba(92, 68, 151, .13), transparent 30rem), linear-gradient(145deg, #f3f1f8, #edf5f5); }
-.page-view { animation: page-view-in .24s ease both; }
+.page-view { animation: page-view-in .24s ease both; contain: layout paint; }
 @keyframes page-view-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .sidebar {
   position: sticky;
@@ -271,6 +273,8 @@ td strong { color: #1b2a3c; }
 
 @media (max-width: 760px) {
   .app-shell { display: block; }
+  .app-shell::before { left: 0; }
+  .app-shell.is-updating::before { width: 100%; }
   .sidebar { position: static; height: auto; padding: 16px 18px; flex-direction: row; align-items: center; gap: 16px; }
   .sidebar::after, .sidebar-context, .sidebar-note { display: none; }
   .sidebar nav { display: flex; margin: 0 0 0 auto; }
