@@ -361,4 +361,36 @@ class IncidentInsightsServiceTest {
         assertThrows(IllegalArgumentException.class,
                 () -> service.correlateAlertSignals(List.of(signal, signal), 10));
     }
+
+    @Test
+    void maintenancePlanSuppressesExpectedWarningButReviewsCriticalAlert() {
+        var result = service.planMaintenanceAlerts(
+                new IncidentInsightsService.MaintenanceAlertPlanRequest(
+                        List.of(new IncidentInsightsService.MaintenanceWindowRequest(
+                                "mw-1", "checkout", 100, 160, true, true)),
+                        List.of(
+                                new IncidentInsightsService.MaintenanceAlertSignal(
+                                        "e1", "payment", 120, "WARNING"),
+                                new IncidentInsightsService.MaintenanceAlertSignal(
+                                        "e2", "checkout", 130, "CRITICAL"),
+                                new IncidentInsightsService.MaintenanceAlertSignal(
+                                        "e3", "search", 130, "WARNING")),
+                        5));
+        assertEquals("REVIEW_REQUIRED", result.status());
+        assertEquals(1, result.suppressedCount());
+        assertEquals(1, result.reviewCount());
+        assertEquals(1, result.keptCount());
+        assertFalse(result.automaticAlertChangesStarted());
+    }
+
+    @Test
+    void maintenancePlanRejectsDuplicateWindowIds() {
+        var window = new IncidentInsightsService.MaintenanceWindowRequest(
+                "same", "checkout", 100, 160, true, true);
+        assertThrows(IllegalArgumentException.class, () -> service.planMaintenanceAlerts(
+                new IncidentInsightsService.MaintenanceAlertPlanRequest(
+                        List.of(window, window),
+                        List.of(new IncidentInsightsService.MaintenanceAlertSignal(
+                                "e1", "checkout", 120, "WARNING")), 0)));
+    }
 }

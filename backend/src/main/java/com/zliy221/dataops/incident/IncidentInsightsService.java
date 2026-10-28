@@ -169,6 +169,23 @@ public class IncidentInsightsService {
                                          double noiseReductionPercent,
                                          List<AlertCorrelationGroup> groups,
                                          boolean automaticAlertChangesStarted) {}
+    public record MaintenanceWindowRequest(String windowId, String serviceName,
+                                           long startMinute, long endMinute,
+                                           boolean approved, boolean rollbackReady) {}
+    public record MaintenanceAlertSignal(String eventId, String serviceName,
+                                         long observedMinute, String severity) {}
+    public record MaintenanceAlertPlanRequest(List<MaintenanceWindowRequest> windows,
+                                              List<MaintenanceAlertSignal> alerts,
+                                              int guardMinutes) {}
+    public record MaintenanceAlertDecision(String eventId, String serviceName,
+                                           String severity, String windowId,
+                                           String decision, String reason,
+                                           boolean requiresConfirmation) {}
+    public record MaintenanceAlertPlan(String status, int alertCount,
+                                       int suppressedCount, int reviewCount,
+                                       int keptCount,
+                                       List<MaintenanceAlertDecision> decisions,
+                                       boolean automaticAlertChangesStarted) {}
 
     private static final Map<String, List<String>> DEPENDENCIES = Map.of(
             "gateway", List.of("checkout", "catalog"),
@@ -826,6 +843,77 @@ public class IncidentInsightsService {
         double reduction = Math.round(suppressed * 10000.0 / signals.size()) / 100.0;
         return new AlertCorrelationReport(suppressed > 0 ? "CORRELATED" : "NO_REDUCTION",
                 signals.size(), groups.size(), suppressed, reduction, groups, false);
+    }
+
+    public MaintenanceAlertPlan planMaintenanceAlerts(MaintenanceAlertPlanRequest request) {
+        if (request == null || request.windows() == null || request.windows().isEmpty()
+                || request.alerts() == null || request.alerts().isEmpty()
+                || request.guardMinutes() < 0 || request.guardMinutes() > 120) {
+            throw new IllegalArgumentException("维护告警计划输入无效");
+        }
+        Set<String> windowIds = new HashSet<>();
+        for (MaintenanceWindowRequest window : request.windows()) {
+            if (window == null || window.windowId() == null || window.windowId().isBlank()
+                    || !windowIds.add(window.windowId()) || window.startMinute() < 0
+                    || window.endMinute() <= window.startMinute()) {
+                throw new IllegalArgumentException("维护窗口字段无效或编号重复");
+            }
+            blastRadius(window.serviceName());
+        }
+        Set<String> eventIds = new HashSet<>();
+        List<MaintenanceAlertDecision> decisions = new ArrayList<>();
+        for (MaintenanceAlertSignal alert : request.alerts()) {
+            if (alert == null || alert.eventId() == null || alert.eventId().isBlank()
+                    || !eventIds.add(alert.eventId()) || alert.observedMinute() < 0
+                    || !Set.of("WARNING", "CRITICAL").contains(alert.severity())) {
+                throw new IllegalArgumentException("维护告警字段无效或编号重复");
+            }
+            blastRadius(alert.serviceName());
+            MaintenanceWindowRequest matched = request.windows().stream()
+                    .filter(window -> affectedServices(window.serviceName()).contains(alert.serviceName().trim()))
+                    .filter(window -> alert.observedMinute() >= window.startMinute() - request.guardMinutes()
+                            && alert.observedMinute() <= window.endMinute() + request.guardMinutes())
+                    .sorted((left, right) -> left.windowId().compareTo(right.windowId()))
+                    .findFirst().orElse(null);
+            String decision;
+            String reason;
+            boolean confirmation;
+            if (matched == null) {
+                decision = "KEEP";
+                reason = "OUTSIDE_MAINTENANCE_WINDOW";
+                confirmation = false;
+            } else if (alert.severity().equals("CRITICAL")) {
+                decision = "REVIEW";
+                reason = "CRITICAL_ALERT_DURING_MAINTENANCE";
+                confirmation = true;
+            } else if (!matched.approved()) {
+                decision = "REVIEW";
+                reason = "MAINTENANCE_NOT_APPROVED";
+                confirmation = true;
+            } else if (!matched.rollbackReady()) {
+                decision = "REVIEW";
+                reason = "ROLLBACK_NOT_READY";
+                confirmation = true;
+            } else {
+                decision = "SUPPRESS_EXPECTED";
+                reason = "APPROVED_MAINTENANCE_SIGNAL";
+                confirmation = true;
+            }
+            decisions.add(new MaintenanceAlertDecision(alert.eventId(), alert.serviceName().trim(),
+                    alert.severity(), matched == null ? null : matched.windowId(),
+                    decision, reason, confirmation));
+        }
+        decisions.sort((left, right) -> {
+            int order = Integer.compare(
+                    Map.of("REVIEW", 0, "KEEP", 1, "SUPPRESS_EXPECTED", 2).get(left.decision()),
+                    Map.of("REVIEW", 0, "KEEP", 1, "SUPPRESS_EXPECTED", 2).get(right.decision()));
+            return order != 0 ? order : left.eventId().compareTo(right.eventId());
+        });
+        int suppressed = (int) decisions.stream().filter(item -> item.decision().equals("SUPPRESS_EXPECTED")).count();
+        int review = (int) decisions.stream().filter(item -> item.decision().equals("REVIEW")).count();
+        int kept = decisions.size() - suppressed - review;
+        return new MaintenanceAlertPlan(review > 0 ? "REVIEW_REQUIRED" : "PLAN_READY",
+                decisions.size(), suppressed, review, kept, decisions, false);
     }
 
     private int dependencyDepth(String serviceName, Set<String> plan, Set<String> visited) {

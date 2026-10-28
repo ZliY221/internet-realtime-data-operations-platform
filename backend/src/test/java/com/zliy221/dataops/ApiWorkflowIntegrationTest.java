@@ -572,4 +572,25 @@ class ApiWorkflowIntegrationTest {
                 .andExpect(jsonPath("$.suppressedDuplicateCount").value(1))
                 .andExpect(jsonPath("$.automaticAlertChangesStarted").value(false));
     }
+
+    @Test
+    void maintenanceAlertPlanProtectsCriticalSignalsFromSuppression() throws Exception {
+        mockMvc.perform(post("/api/v3/incidents/maintenance-alert-plan")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "windows":[{"windowId":"mw-1","serviceName":"checkout","startMinute":100,"endMinute":160,"approved":true,"rollbackReady":true}],
+                                  "alerts":[
+                                    {"eventId":"e1","serviceName":"payment","observedMinute":120,"severity":"WARNING"},
+                                    {"eventId":"e2","serviceName":"checkout","observedMinute":130,"severity":"CRITICAL"}
+                                  ],
+                                  "guardMinutes":5
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("REVIEW_REQUIRED"))
+                .andExpect(jsonPath("$.suppressedCount").value(1))
+                .andExpect(jsonPath("$.reviewCount").value(1))
+                .andExpect(jsonPath("$.automaticAlertChangesStarted").value(false));
+    }
 }

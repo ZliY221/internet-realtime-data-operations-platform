@@ -68,4 +68,10 @@ public class ReleaseCoordinationController {
             int correlationWindowMinutes) {
         return service.correlateAlertSignals(signals, correlationWindowMinutes);
     }
+
+    @PostMapping("/maintenance-alert-plan")
+    public IncidentInsightsService.MaintenanceAlertPlan maintenanceAlertPlan(
+            @RequestBody IncidentInsightsService.MaintenanceAlertPlanRequest request) {
+        return service.planMaintenanceAlerts(request);
+    }
 }
